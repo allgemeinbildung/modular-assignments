@@ -52,13 +52,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 });
 
-function renderSolution(subAssignmentData) {
-    document.getElementById('sub-title').textContent = `Lösung: ${subAssignmentData.title}`;
-    document.getElementById('instructions').innerHTML = subAssignmentData.instructions;
-    document.getElementById('action-container').style.display = 'none';
-
-    const contentRenderer = document.getElementById('content-renderer');
-    contentRenderer.innerHTML = ''; 
+function renderSolution(subAssignmentData, targetContainer = document.getElementById('content-renderer')) {
+    targetContainer.innerHTML = ''; 
 
     switch (subAssignmentData.type) {
         case 'quill':
@@ -68,13 +63,13 @@ function renderSolution(subAssignmentData) {
                 listItem.innerHTML = q.text;
                 questionsList.appendChild(listItem);
             });
-            contentRenderer.appendChild(questionsList);
+            targetContainer.appendChild(questionsList);
 
             if (subAssignmentData.solution && subAssignmentData.solution.type === 'html') {
                 const solutionBox = document.createElement('div');
                 solutionBox.style.cssText = 'background-color:#e9f7ef; border:1px solid #a3d9b1; border-radius:5px; padding:15px; margin-top:20px;';
                 solutionBox.innerHTML = subAssignmentData.solution.content;
-                contentRenderer.appendChild(solutionBox);
+                targetContainer.appendChild(solutionBox);
             }
             break;
         
@@ -99,7 +94,7 @@ function renderSolution(subAssignmentData) {
                 });
                 mcQuizForm.appendChild(questionContainer);
             });
-            contentRenderer.appendChild(mcQuizForm);
+            targetContainer.appendChild(mcQuizForm);
             break;
 
         case 'trueFalse':
@@ -116,7 +111,7 @@ function renderSolution(subAssignmentData) {
                 questionContainer.appendChild(answerText);
                 tfQuizForm.appendChild(questionContainer);
             });
-            contentRenderer.appendChild(tfQuizForm);
+            targetContainer.appendChild(tfQuizForm);
             break;
             
         case 'dragTheWords':
@@ -127,16 +122,16 @@ function renderSolution(subAssignmentData) {
             const contentP = document.createElement('p');
             contentP.className = 'sentence-container';
             contentP.innerHTML = solvedContent;
-            contentRenderer.appendChild(contentP);
+            targetContainer.appendChild(contentP);
             break;
 
         default:
-            contentRenderer.innerHTML = '<p>Unbekannter Lösungstyp.</p>';
+            targetContainer.innerHTML = '<p>Unbekannter Lösungstyp.</p>';
     }
 }
 
 /**
- * Renders the interactive part of a sub-assignment.
+ * Renders the interactive part of a sub-assignment and checks for cached solutions.
  */
 async function renderSubAssignment(subAssignmentData, assignmentId, subId) {
     document.getElementById('sub-title').textContent = subAssignmentData.title;
@@ -146,6 +141,7 @@ async function renderSubAssignment(subAssignmentData, assignmentId, subId) {
     const contentRenderer = document.getElementById('content-renderer');
     contentRenderer.innerHTML = '';
 
+    // Render the main assignment content
     switch (subAssignmentData.type) {
         case 'quill':
             await renderQuill(subAssignmentData, assignmentId, subId);
@@ -163,18 +159,29 @@ async function renderSubAssignment(subAssignmentData, assignmentId, subId) {
             contentRenderer.innerHTML = '<p>Error: Unknown assignment type.</p>';
     }
 
-    // After rendering the assignment, render the solution importer UI
+    // Render the solution importer UI
     renderSolutionImporter(assignmentId, subId);
+    
+    // **NEW**: Check for and display a cached solution from sessionStorage
+    const cachedSolutionKey = `solution-cache_${assignmentId}_${subId}`;
+    const cachedSolutionDataString = sessionStorage.getItem(cachedSolutionKey);
+    if (cachedSolutionDataString) {
+        try {
+            const cachedSolutionData = JSON.parse(cachedSolutionDataString);
+            displayImportedSolution(cachedSolutionData);
+        } catch(e) {
+            console.error("Could not parse cached solution data:", e);
+            sessionStorage.removeItem(cachedSolutionKey); // Clear corrupted data
+        }
+    }
 }
 
 /**
  * Creates the UI for the "Import Solution" feature.
- * @param {string} assignmentId - The current assignment ID.
- * @param {string} subId - The current sub-assignment ID.
  */
 function renderSolutionImporter(assignmentId, subId) {
     const container = document.getElementById('solution-import-container');
-    container.innerHTML = ''; // Clear previous content
+    container.innerHTML = ''; 
 
     const importButton = document.createElement('button');
     importButton.textContent = 'Lösung importieren';
@@ -194,10 +201,7 @@ function renderSolutionImporter(assignmentId, subId) {
 }
 
 /**
- * Handles the file selection, validation, and triggers the display of the solution.
- * @param {Event} event - The file input change event.
- * @param {string} assignmentId - The expected assignment ID.
- * @param {string} subId - The expected sub-assignment ID.
+ * Handles file selection, validation, caching, and triggers the display of the solution.
  */
 function handleSolutionFileSelect(event, assignmentId, subId) {
     const file = event.target.files[0];
@@ -209,13 +213,17 @@ function handleSolutionFileSelect(event, assignmentId, subId) {
             const importedData = JSON.parse(e.target.result);
             const expectedTitle = document.getElementById('main-title').textContent;
 
-            // Validate if the imported file matches the current assignment
             if (importedData.assignmentTitle !== expectedTitle || !importedData.subAssignments[subId]) {
                 alert('Fehler: Diese Lösungsdatei passt nicht zur aktuellen Aufgabe. Bitte die korrekte JSON-Datei auswählen.');
                 return;
             }
 
             const solutionSubAssignmentData = importedData.subAssignments[subId];
+
+            // **NEW**: Cache the valid solution data in sessionStorage
+            const storageKey = `solution-cache_${assignmentId}_${subId}`;
+            sessionStorage.setItem(storageKey, JSON.stringify(solutionSubAssignmentData));
+
             displayImportedSolution(solutionSubAssignmentData);
 
         } catch (error) {
@@ -223,25 +231,27 @@ function handleSolutionFileSelect(event, assignmentId, subId) {
         }
     };
     reader.readAsText(file);
+    event.target.value = ''; // Reset file input
 }
 
 /**
  * Renders the solution from a validated file into its dedicated container.
- * @param {object} solutionSubAssignmentData - The sub-assignment object from the imported file.
  */
 function displayImportedSolution(solutionSubAssignmentData) {
     const solutionContainer = document.getElementById('solution-display-container');
-    solutionContainer.innerHTML = ''; // Clear previous solution
     solutionContainer.style.display = 'block'; // Make it visible
 
     const title = document.createElement('h3');
     title.textContent = `Importierte Lösung für: ${solutionSubAssignmentData.title}`;
+    
+    // Clear container and add new title
+    solutionContainer.innerHTML = ''; 
     solutionContainer.appendChild(title);
     
-    // Use the same logic as renderSolution, but target the new container
     renderSolution(solutionSubAssignmentData, solutionContainer);
 }
 
+// ... (The rest of the functions: renderQuill, renderMultipleChoice, etc., remain unchanged) ...
 
 async function renderQuill(data, assignmentId, subId) {
     const contentRenderer = document.getElementById('content-renderer');
@@ -514,7 +524,7 @@ function renderDragTheWords(data, assignmentId, subId) {
 
     contentRenderer.addEventListener('dragstart', (e) => {
         if (e.target.classList.contains('draggable-word')) {
-            draggedItem = e.target;
+            draggedItem = e..target;
             setTimeout(() => e.target.style.display = 'none', 0);
         }
     });
@@ -619,7 +629,6 @@ function renderDragTheWords(data, assignmentId, subId) {
     
     loadState();
 }
-
 
 async function gatherAllAssignmentsData() {
     let studentName = localStorage.getItem('studentName');
