@@ -3,6 +3,7 @@ import { saveAttachment, getAttachmentsForSubAssignment, deleteAttachment } from
 const QUILL_ANSWER_PREFIX = 'modular-answer_';
 const QUESTIONS_PREFIX = 'modular-questions_';
 const TITLE_PREFIX = 'title_';
+const TYPE_PREFIX = 'type_'; // ✅ NEW: Prefix for storing the assignment type
 
 function debounce(func, wait) {
     let timeout;
@@ -304,14 +305,12 @@ export async function renderSubAssignment(subAssignmentData, assignmentId, subId
     document.getElementById('instructions').innerHTML = subAssignmentData.instructions;
     document.getElementById('content-renderer').innerHTML = '';
 
-    const questionsToStore = {};
+    // ✅ MODIFIED: Store the full question objects and the assignment type
     if (subAssignmentData.questions) {
-        subAssignmentData.questions.forEach(q => {
-            questionsToStore[q.id] = q.text || q.question;
-        });
+        localStorage.setItem(`${QUESTIONS_PREFIX}${assignmentId}_sub_${subId}`, JSON.stringify(subAssignmentData.questions));
     }
-    localStorage.setItem(`${QUESTIONS_PREFIX}${assignmentId}_sub_${subId}`, JSON.stringify(questionsToStore));
     localStorage.setItem(`${TITLE_PREFIX}${assignmentId}_sub_${subId}`, subAssignmentData.title);
+    localStorage.setItem(`${TYPE_PREFIX}${assignmentId}_sub_${subId}`, subAssignmentData.type);
 
     switch (subAssignmentData.type) {
         case 'quill':
