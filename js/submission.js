@@ -162,51 +162,54 @@ export async function gatherAllAssignmentsData() {
 
 
 /**
- * Sends the submission data to the Google Apps Script endpoint.
- * @param {object} data - The complete data from gatherAllAssignmentsData.
- */
+ * Sends the submission data to the Google Apps Script endpoint.
+ * @param {object} data - The complete data from gatherAllAssignmentsData.
+ */
 export function submitAssignment(data) {
-    if (!data) return;
+    if (!data) return;
 
-    if (!SCRIPT_URL) {
-        alert("Submission error: The Google Apps Script URL is not configured. Please set it in 'js/config.js'.");
-        console.error("SCRIPT_URL is not set in js/config.js");
-        return;
-    }
-    const submitButton = document.getElementById('submit-all');
-    submitButton.textContent = 'Submitting...';
-    submitButton.disabled = true;
+    if (!SCRIPT_URL) {
+        alert("Submission error: The Google Apps Script URL is not configured. Please set it in 'js/config.js'.");
+        console.error("SCRIPT_URL is not set in js/config.js");
+        return;
+    }
+    const submitButton = document.getElementById('submit-all');
+    submitButton.textContent = 'Submitting...';
+    submitButton.disabled = true;
 
-    fetch(SCRIPT_URL, {
-        method: 'POST',
-        mode: 'cors',
-        cache: 'no-cache',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-        redirect: 'follow'
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`Network response was not ok, status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(result => {
-        if (result.status === "success") {
-            alert(`Success! Your work has been submitted. You can view it here: ${result.folderUrl}`);
-        } else {
-            throw new Error(result.message || 'An unknown error occurred during submission.');
-        }
-    })
-    .catch(error => {
-        console.error('Submission Error:', error);
-        alert(`An error occurred while submitting your work: ${error.message}`);
-    })
-    .finally(() => {
-        submitButton.textContent = 'Alle Aufträge abgeben';
-        submitButton.disabled = false;
-    });
+    fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'cors', // Keep mode as 'cors'
+        cache: 'no-cache',
+        headers: {
+            // ❌ OLD
+            //'Content-Type': 'application/json',
+            // ✅ NEW: Change Content-Type to text/plain
+            'Content-Type': 'text/plain;charset=utf-8',
+        },
+        body: JSON.stringify(data),
+        redirect: 'follow' // It's good practice to keep this
+    })
+    .then(response => {
+        // The rest of this function remains exactly the same...
+        if (!response.ok) {
+            throw new Error(`Network response was not ok, status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(result => {
+        if (result.status === "success") {
+            alert(`Success! Your work has been submitted. You can view it here: ${result.folderUrl}`);
+        } else {
+            throw new Error(result.message || 'An unknown error occurred during submission.');
+        }
+    })
+    .catch(error => {
+        console.error('Submission Error:', error);
+        alert(`An error occurred while submitting your work: ${error.message}`);
+    })
+    .finally(() => {
+        submitButton.textContent = 'Alle Aufträge abgeben';
+        submitButton.disabled = false;
+    });
 }
-
