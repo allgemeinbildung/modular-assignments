@@ -2,8 +2,8 @@ import { saveAttachment, getAttachmentsForSubAssignment, deleteAttachment } from
 
 const QUILL_ANSWER_PREFIX = 'modular-answer_';
 const QUESTIONS_PREFIX = 'modular-questions_';
+const TITLE_PREFIX = 'title_';
 
-// Debounce function to limit the rate at which a function gets called.
 function debounce(func, wait) {
     let timeout;
     return function(...args) {
@@ -12,14 +12,10 @@ function debounce(func, wait) {
     };
 }
 
-/**
- * Renders a Quill-based assignment, including questions and attachment handling.
- */
 async function renderQuill(data, assignmentId, subId) {
     const contentRenderer = document.getElementById('content-renderer');
     const storageKey = `${QUILL_ANSWER_PREFIX}${assignmentId}_sub_${subId}`;
 
-    // Render questions as a numbered list
     const questionsList = document.createElement('ol');
     data.questions.forEach(q => {
         const listItem = document.createElement('li');
@@ -28,22 +24,27 @@ async function renderQuill(data, assignmentId, subId) {
     });
     contentRenderer.appendChild(questionsList);
 
-    // Create and initialize Quill editor
     const editorDiv = document.createElement('div');
     editorDiv.id = 'quill-editor';
     contentRenderer.appendChild(editorDiv);
+
+    // Add image button to toolbar
     const quill = new Quill('#quill-editor', {
         theme: 'snow',
-        modules: { toolbar: [['bold', 'italic', 'underline'], [{ 'list': 'ordered' }, { 'list': 'bullet' }]] }
+        modules: {
+            toolbar: [
+                ['bold', 'italic', 'underline'],
+                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                ['image', 'clean']
+            ]
+        }
     });
 
-    // Load saved answer from localStorage
     const savedAnswer = localStorage.getItem(storageKey);
     if (savedAnswer) {
         quill.root.innerHTML = savedAnswer;
     }
 
-    // Save content on text-change, using debounce to improve performance
     quill.on('text-change', debounce(() => {
         const htmlContent = quill.root.innerHTML;
         if (htmlContent && htmlContent !== '<p><br></p>') {
@@ -52,12 +53,12 @@ async function renderQuill(data, assignmentId, subId) {
             localStorage.removeItem(storageKey);
         }
     }, 500));
-
-    // Attachment section
+    
     const attachmentContainer = document.createElement('div');
     attachmentContainer.className = 'attachments-section';
+    attachmentContainer.style.marginTop = '20px';
     attachmentContainer.innerHTML = `
-        <h4>Anhänge</h4>
+        <h4>Externe Anhänge (Dateien)</h4>
         <label for="file-attachment" class="file-upload-btn">Datei hochladen</label>
         <input type="file" id="file-attachment" style="display: none;">
         <div id="current-attachments"></div>`;
@@ -83,18 +84,17 @@ async function renderQuill(data, assignmentId, subId) {
 
         const reader = new FileReader();
         reader.onload = async (e) => {
-            const attachmentData = {
+            await saveAttachment({
                 assignmentId,
                 subId,
                 fileName: file.name,
                 fileType: file.type,
-                data: e.target.result // base64 data URL
-            };
-            await saveAttachment(attachmentData);
+                data: e.target.result
+            });
             await refreshAttachments();
         };
         reader.readAsDataURL(file);
-        fileInput.value = ''; // Reset input
+        fileInput.value = '';
     });
 
     attachmentsListDiv.addEventListener('click', async (event) => {
@@ -111,65 +111,86 @@ async function renderQuill(data, assignmentId, subId) {
 }
 
 /**
- * Renders an interactive quiz.
+ * NEW: Renders a stateful, multi-type quiz engine.
  */
 function renderQuiz(data, assignmentId, subId) {
+    const { questions } = data;
     const contentRenderer = document.getElementById('content-renderer');
     const storageKey = `${QUILL_ANSWER_PREFIX}${assignmentId}_sub_${subId}`;
-    const { questions } = data;
-    let score = 0;
+    let currentIndex = 0;
+    let userAnswers = JSON.parse(localStorage.getItem(storageKey) || '{ "userAnswers": {} }').userAnswers;
 
-    contentRenderer.innerHTML = '<div class="quiz-container"></div>';
-    const quizContainer = contentRenderer.querySelector('.quiz-container');
+    const saveAnswers = () => {
+        localStorage.setItem(storageKey, JSON.stringify({ userAnswers }));
+    };
 
-    questions.forEach((q, index) => {
-        const questionEl = document.createElement('div');
-        questionEl.className = 'quiz-question';
-        questionEl.innerHTML = `<p><strong>${index + 1}. ${q.question}</strong></p>`;
+    const displayQuestion = () => {
+        contentRenderer.innerHTML = '';
+        const questionData = questions[currentIndex];
         
-        const optionsContainer = document.createElement('div');
-        q.options.forEach(opt => {
-            optionsContainer.innerHTML += `
-                <div>
-                    <input type="radio" name="q${index}" value="${opt.is_correct}" id="q${index}opt${opt.text.substring(0,5)}">
-                    <label for="q${index}opt${opt.text.substring(0,5)}">${opt.text}</label>
-                    <span class="feedback"></span>
-                </div>`;
-        });
-        questionEl.appendChild(optionsContainer);
-        quizContainer.appendChild(questionEl);
-    });
+        const questionContainer = document.createElement('div');
+        questionContainer.className = 'quiz-frame';
+        questionContainer.innerHTML = `
+            <div class="quiz-header">
+                <h3>Frage ${currentIndex + 1} von ${questions.length}</h3>
+            </div>
+            <div class="quiz-question-display">
+                <p><strong>${questionData.question}</strong></p>
+                <div class="options-container"></div>
+            </div>
+            <div class="quiz-navigation"></div>
+        `;
 
-    const checkAnswersBtn = document.createElement('button');
-    checkAnswersBtn.textContent = 'Antworten prüfen';
-    quizContainer.appendChild(checkAnswersBtn);
+        const optionsContainer = questionContainer.querySelector('.options-container');
+        switch (questionData.type) {
+            case 'multipleChoice':
+                questionData.options.forEach(option => {
+                    const optionId = `q_${currentIndex}_${option.text.slice(0,5)}`;
+                    optionsContainer.innerHTML += `
+                        <div>
+                            <input type="radio" name="mc_option" id="${optionId}" value="${option.text}">
+                            <label for="${optionId}">${option.text}</label>
+                        </div>`;
+                });
+                break;
+            // Add other cases for 'trueFalse', 'dragTheWords' if needed
+        }
 
-    checkAnswersBtn.addEventListener('click', () => {
-        score = 0;
-        questions.forEach((q, index) => {
-            const selected = quizContainer.querySelector(`input[name="q${index}"]:checked`);
-            const feedbacks = quizContainer.querySelectorAll(`input[name="q${index}"] ~ .feedback`);
-            feedbacks.forEach(fb => { fb.textContent = ''; fb.className = 'feedback'; }); // Reset
+        contentRenderer.appendChild(questionContainer);
+        
+        // Add navigation buttons
+        const navContainer = questionContainer.querySelector('.quiz-navigation');
+        if (currentIndex > 0) {
+            const prevBtn = document.createElement('button');
+            prevBtn.textContent = 'Zurück';
+            prevBtn.className = 'quiz-nav-btn secondary';
+            prevBtn.onclick = () => { currentIndex--; displayQuestion(); };
+            navContainer.appendChild(prevBtn);
+        }
+        if (currentIndex < questions.length - 1) {
+            const nextBtn = document.createElement('button');
+            nextBtn.textContent = 'Weiter';
+            nextBtn.className = 'quiz-nav-btn';
+            nextBtn.onclick = () => { currentIndex++; displayQuestion(); };
+            navContainer.appendChild(nextBtn);
+        }
 
-            if (selected) {
-                const isCorrect = selected.value === 'true';
-                const feedbackSpan = selected.nextElementSibling.nextElementSibling;
-                if (isCorrect) {
-                    score++;
-                    feedbackSpan.textContent = q.options.find(o => o.text === selected.nextElementSibling.textContent)?.feedback || "Richtig!";
-                    feedbackSpan.classList.add('correct');
-                } else {
-                    feedbackSpan.textContent = q.options.find(o => o.text === selected.nextElementSibling.textContent)?.feedback || "Falsch.";
-                    feedbackSpan.classList.add('incorrect');
-                }
+        // Add event listeners and restore state
+        optionsContainer.addEventListener('change', e => {
+            if (e.target.type === 'radio') {
+                userAnswers[questionData.id] = e.target.value;
+                saveAnswers();
             }
         });
-        checkAnswersBtn.textContent = `Ergebnis: ${score} / ${questions.length} - Erneut prüfen`;
+        
+        const savedAnswer = userAnswers[questionData.id];
+        if (savedAnswer) {
+            const selectedRadio = optionsContainer.querySelector(`input[value="${savedAnswer}"]`);
+            if (selectedRadio) selectedRadio.checked = true;
+        }
+    };
 
-        // Save result to localStorage
-        const result = { score, total: questions.length };
-        localStorage.setItem(storageKey, JSON.stringify(result));
-    });
+    displayQuestion();
 }
 
 /**
@@ -180,28 +201,20 @@ export async function renderSubAssignment(subAssignmentData, assignmentId, subId
     document.getElementById('instructions').innerHTML = subAssignmentData.instructions;
     document.getElementById('content-renderer').innerHTML = '';
 
-    // Save questions to localStorage for submission gathering
     const questionsToStore = {};
     if (subAssignmentData.questions) {
-        subAssignmentData.questions.forEach((q, i) => {
-            // Use a generic key 'question_X'
-            questionsToStore[`question_${i + 1}`] = q.text || q.question;
+        subAssignmentData.questions.forEach(q => {
+            questionsToStore[q.id] = q.text || q.question;
         });
     }
-    const questionStorageKey = `${QUESTIONS_PREFIX}${assignmentId}_sub_${subId}`;
-    localStorage.setItem(questionStorageKey, JSON.stringify(questionsToStore));
-    
-    // Add title to local storage
-    const titleKey = `title_${assignmentId}_sub_${subId}`;
-    localStorage.setItem(titleKey, subAssignmentData.title);
+    localStorage.setItem(`${QUESTIONS_PREFIX}${assignmentId}_sub_${subId}`, JSON.stringify(questionsToStore));
+    localStorage.setItem(`${TITLE_PREFIX}${assignmentId}_sub_${subId}`, subAssignmentData.title);
 
     switch (subAssignmentData.type) {
         case 'quill':
             await renderQuill(subAssignmentData, assignmentId, subId);
             break;
         case 'quiz':
-             // For simplicity, this example treats all quizzes as multiple choice.
-             // The original repo's complex quiz renderer can be adapted if needed.
             renderQuiz(subAssignmentData, assignmentId, subId);
             break;
         default:
