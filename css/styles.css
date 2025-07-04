@@ -1,0 +1,36 @@
+/* Drag and Drop Styles */
+.word-bank {
+    margin-top: 20px;
+    padding: 10px;
+    border: 2px dashed #ccc;
+    min-height: 40px;
+}
+
+.sentence-container {
+    padding: 15px;
+    border: 1px solid #f0f0f0;
+    line-height: 2;
+    font-size: 1.2em;
+}
+
+.draggable-word {
+    display: inline-block;
+    cursor: grab;
+    background-color: #007bff;
+    color: white;
+    padding: 5px 10px;
+    margin: 5px;
+    border-radius: 5px;
+    user-select: none;
+}
+
+.drop-zone {
+    display: inline-block;
+    min-width: 150px;
+    min-height: 30px;
+    border: 2px dashed #999;
+    border-radius: 5px;
+    vertical-align: middle;
+    margin: 0 5px;
+    padding: 2px;
+}

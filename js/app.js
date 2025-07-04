@@ -75,8 +75,6 @@ function renderSolution(subAssignmentData) {
                 solutionBox.style.cssText = 'background-color:#e9f7ef; border:1px solid #a3d9b1; border-radius:5px; padding:15px; margin-top:20px;';
                 solutionBox.innerHTML = subAssignmentData.solution.content;
                 contentRenderer.appendChild(solutionBox);
-            } else {
-                contentRenderer.innerHTML += '<p>Für diese Aufgabe ist keine Lösung im HTML-Format verfügbar.</p>';
             }
             break;
         
@@ -85,24 +83,19 @@ function renderSolution(subAssignmentData) {
             subAssignmentData.questions.forEach((questionData, index) => {
                 const questionContainer = document.createElement('div');
                 questionContainer.className = 'quiz-question-container';
-
                 const questionText = document.createElement('p');
                 questionText.innerHTML = `<strong>Frage ${index + 1}:</strong> ${questionData.question}`;
                 questionContainer.appendChild(questionText);
-
                 questionData.options.forEach(option => {
-                    const optionWrapper = document.createElement('div');
                     const label = document.createElement('label');
                     label.textContent = option.text;
-
                     if (option.is_correct) {
                         label.style.fontWeight = 'bold';
                         label.style.color = 'green';
                         label.innerHTML += " (Richtige Antwort)";
                     }
-                    
-                    optionWrapper.appendChild(label);
-                    questionContainer.appendChild(optionWrapper);
+                    questionContainer.appendChild(label);
+                    questionContainer.appendChild(document.createElement('br'));
                 });
                 mcQuizForm.appendChild(questionContainer);
             });
@@ -114,25 +107,34 @@ function renderSolution(subAssignmentData) {
             subAssignmentData.questions.forEach((questionData, index) => {
                 const questionContainer = document.createElement('div');
                 questionContainer.className = 'quiz-question-container';
-
                 const questionText = document.createElement('p');
                 questionText.innerHTML = `<strong>Frage ${index + 1}:</strong> ${questionData.question}`;
                 questionContainer.appendChild(questionText);
-                
                 const answerText = document.createElement('p');
                 const correctAnswer = questionData.is_correct ? 'Wahr' : 'Falsch';
                 answerText.innerHTML = `Richtige Antwort: <strong>${correctAnswer}</strong>`;
                 questionContainer.appendChild(answerText);
-
                 tfQuizForm.appendChild(questionContainer);
             });
             contentRenderer.appendChild(tfQuizForm);
             break;
             
+        case 'dragTheWords':
+            let solvedContent = subAssignmentData.content;
+            subAssignmentData.solution.forEach(word => {
+                solvedContent = solvedContent.replace('[BLANK]', `<strong style="color: green; border-bottom: 2px solid green; padding-bottom: 2px;">${word}</strong>`);
+            });
+            const contentP = document.createElement('p');
+            contentP.className = 'sentence-container';
+            contentP.innerHTML = solvedContent;
+            contentRenderer.appendChild(contentP);
+            break;
+
         default:
             contentRenderer.innerHTML = '<p>Unbekannter Lösungstyp.</p>';
     }
 }
+
 
 async function renderSubAssignment(subAssignmentData, assignmentId, subId) {
     document.getElementById('sub-title').textContent = subAssignmentData.title;
@@ -151,6 +153,9 @@ async function renderSubAssignment(subAssignmentData, assignmentId, subId) {
             break;
         case 'trueFalse':
             renderTrueFalse(subAssignmentData, assignmentId, subId);
+            break;
+        case 'dragTheWords':
+            renderDragTheWords(subAssignmentData, assignmentId, subId);
             break;
         default:
             contentRenderer.innerHTML = '<p>Error: Unknown assignment type.</p>';
@@ -173,7 +178,6 @@ async function renderQuill(data, assignmentId, subId) {
     editorDiv.id = 'quill-editor';
     contentRenderer.appendChild(editorDiv);
     
-    // Attachment logic remains the same
     const attachmentContainer = document.createElement('div');
     attachmentContainer.id = 'attachment-container';
     attachmentContainer.style.marginTop = '20px';
@@ -233,7 +237,11 @@ async function renderQuill(data, assignmentId, subId) {
     
     const savedData = localStorage.getItem(storageKey);
     if (savedData) {
-        quill.setContents(JSON.parse(savedData));
+        try {
+            quill.setContents(JSON.parse(savedData));
+        } catch (e) {
+            console.error("Could not parse saved Quill data:", e);
+        }
     }
 
     quill.on('text-change', () => {
@@ -322,7 +330,7 @@ function renderTrueFalse(data, assignmentId, subId) {
 
     data.questions.forEach((questionData, index) => {
         const storageKey = `tf-assignment_${assignmentId}_sub_${subId}_question_${questionData.id}`;
-        const savedAnswer = localStorage.getItem(storageKey); // 'true' or 'false'
+        const savedAnswer = localStorage.getItem(storageKey);
 
         const qContainer = document.createElement('div');
         qContainer.className = 'quiz-question-container';
@@ -387,6 +395,151 @@ function renderTrueFalse(data, assignmentId, subId) {
     });
 }
 
+function renderDragTheWords(data, assignmentId, subId) {
+    const contentRenderer = document.getElementById('content-renderer');
+    const storageKey = `drag-assignment_${assignmentId}_sub_${subId}`;
+
+    const sentenceContainer = document.createElement('div');
+    sentenceContainer.className = 'sentence-container';
+
+    const wordBank = document.createElement('div');
+    wordBank.id = 'word-bank';
+    wordBank.className = 'word-bank';
+
+    const parts = data.content.split('[BLANK]');
+    parts.forEach((part, index) => {
+        sentenceContainer.appendChild(document.createTextNode(part));
+        if (index < parts.length - 1) {
+            const dropZone = document.createElement('span');
+            dropZone.className = 'drop-zone';
+            dropZone.dataset.dropId = index;
+            sentenceContainer.appendChild(dropZone);
+        }
+    });
+
+    data.words.forEach(word => {
+        const wordEl = document.createElement('span');
+        wordEl.className = 'draggable-word';
+        wordEl.textContent = word;
+        wordEl.id = `word-${assignmentId}-${subId}-${word.replace(/\s+/g, '-')}`;
+        wordEl.draggable = true;
+        wordBank.appendChild(wordEl);
+    });
+
+    contentRenderer.appendChild(sentenceContainer);
+    contentRenderer.appendChild(wordBank);
+
+    let draggedItem = null;
+
+    contentRenderer.addEventListener('dragstart', (e) => {
+        if (e.target.classList.contains('draggable-word')) {
+            draggedItem = e.target;
+            setTimeout(() => e.target.style.display = 'none', 0);
+        }
+    });
+
+    contentRenderer.addEventListener('dragend', (e) => {
+        if(draggedItem) {
+           draggedItem.style.display = 'inline-block';
+           draggedItem = null;
+        }
+    });
+    
+    const allDropZones = [wordBank, ...contentRenderer.querySelectorAll('.drop-zone')];
+
+    allDropZones.forEach(zone => {
+        zone.addEventListener('dragover', (e) => e.preventDefault());
+        zone.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            if(e.target.classList.contains('drop-zone') || e.target.id === 'word-bank') {
+                e.target.style.backgroundColor = '#e0e0e0';
+            }
+        });
+        zone.addEventListener('dragleave', (e) => {
+            if(e.target.classList.contains('drop-zone') || e.target.id === 'word-bank') {
+                e.target.style.backgroundColor = '';
+            }
+        });
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            let targetZone = e.target;
+            if(targetZone.classList.contains('draggable-word')) {
+                targetZone = targetZone.parentElement;
+            }
+
+            if (targetZone.classList.contains('drop-zone') || targetZone.id === 'word-bank') {
+                targetZone.style.backgroundColor = '';
+                if (draggedItem) {
+                   if (targetZone.children.length === 0 || targetZone.id === 'word-bank') {
+                      if(targetZone.children.length > 0 && targetZone.id !== 'word-bank') {
+                          wordBank.appendChild(targetZone.children[0]);
+                      }
+                      targetZone.appendChild(draggedItem);
+                      saveState();
+                   }
+                }
+            }
+        });
+    });
+
+    const checkButton = document.createElement('button');
+    checkButton.textContent = 'Antworten überprüfen';
+    checkButton.style.marginTop = '20px';
+    contentRenderer.appendChild(checkButton);
+
+    checkButton.addEventListener('click', () => {
+        const dropZones = sentenceContainer.querySelectorAll('.drop-zone');
+        let allCorrect = true;
+        dropZones.forEach((zone, index) => {
+            const wordEl = zone.querySelector('.draggable-word');
+            zone.style.borderStyle = 'solid';
+            if (wordEl) {
+                if (wordEl.textContent === data.solution[index]) {
+                    zone.style.borderColor = 'green';
+                } else {
+                    zone.style.borderColor = 'red';
+                    allCorrect = false;
+                }
+            } else {
+                 zone.style.borderColor = 'red';
+                 allCorrect = false;
+            }
+        });
+        if(allCorrect) {
+            alert('Super! Alles ist korrekt.');
+        }
+    });
+
+    function saveState() {
+        const state = {};
+        const dropZones = sentenceContainer.querySelectorAll('.drop-zone');
+        dropZones.forEach(zone => {
+            const wordEl = zone.querySelector('.draggable-word');
+            if(wordEl) {
+                state[zone.dataset.dropId] = wordEl.id;
+            }
+        });
+        localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+    
+    function loadState() {
+        const savedState = JSON.parse(localStorage.getItem(storageKey));
+        if (savedState) {
+            Object.keys(savedState).forEach(dropId => {
+                const wordId = savedState[dropId];
+                const wordEl = document.getElementById(wordId);
+                const dropZone = sentenceContainer.querySelector(`.drop-zone[data-drop-id='${dropId}']`);
+                if(wordEl && dropZone) {
+                    dropZone.appendChild(wordEl);
+                }
+            });
+        }
+    }
+    
+    loadState();
+}
+
+
 async function gatherAllAssignmentsData() {
     let studentName = localStorage.getItem('studentName');
     if (!studentName) {
@@ -408,7 +561,7 @@ async function gatherAllAssignmentsData() {
 
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key.startsWith('textbox-assignment_') || key.startsWith('quiz-assignment_') || key.startsWith('tf-assignment_')) {
+        if (key.startsWith('textbox-assignment_') || key.startsWith('quiz-assignment_') || key.startsWith('tf-assignment_') || key.startsWith('drag-assignment_')) {
             studentData.assignments[key] = localStorage.getItem(key);
         }
     }

@@ -58,6 +58,22 @@
             "feedback_false": "Richtig. Notwehr ist nicht rechtswidrig, da sie eine Handlung rechtfertigt."
             }
         ]
+    },
+    "Drag-and-Drop-Satz": {
+        "type": "dragTheWords",
+        "title": "Lückentext: Merkmale einer Straftat",
+        "instructions": "<p>Ziehe die richtigen Wörter in die Lücken, um den Satz zu vervollständigen.</p>",
+        "content": "Eine Handlung gilt als Straftat, wenn sie die Merkmale [BLANK], Rechtswidrigkeit und [BLANK] erfüllt.",
+        "words": [
+            "Tatbestandsmässigkeit",
+            "Schuld",
+            "Absicht",
+            "Vergeltung"
+        ],
+        "solution": [
+            "Tatbestandsmässigkeit",
+            "Schuld"
+        ]
     }
   }
 }
