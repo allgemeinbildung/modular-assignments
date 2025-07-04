@@ -1,14 +1,35 @@
-import { clearAllAttachments } from '../js/db.js';
+// In viewer/viewer.js
 
-document.addEventListener('DOMContentLoaded', () => {
-    const assignmentListContainer = document.getElementById('assignment-list');
-    const clearAllDataBtn = document.getElementById('clearAllDataBtn');
+function displaySavedAssignments() {
+    assignmentListContainer.innerHTML = '';
+    const urlParams = new URLSearchParams(window.location.search);
+    const dataParam = urlParams.get('data');
 
-    const ANSWER_PREFIX = 'modular-answer_';
+    const assignments = new Map();
 
-    function displaySavedAssignments() {
-        assignmentListContainer.innerHTML = '';
-        const assignments = new Map();
+    // --- NEW LOGIC: Prioritize data from URL parameter ---
+    if (dataParam) {
+        try {
+            const decodedData = decodeURIComponent(dataParam);
+            const submissionData = JSON.parse(decodedData);
+            
+            // Populate the assignments map from the submission data
+            for (const assignmentId in submissionData.assignments) {
+                if (!assignments.has(assignmentId)) {
+                    assignments.set(assignmentId, new Set());
+                }
+                for (const subId in submissionData.assignments[assignmentId].subAssignments) {
+                    assignments.get(assignmentId).add(subId);
+                }
+            }
+        } catch (e) {
+            console.error("Failed to parse data from URL", e);
+            assignmentListContainer.innerHTML = '<p style="color: red;">Fehler: Die Daten im Link konnten nicht gelesen werden.</p>';
+            return;
+        }
+    } else {
+        // --- FALLBACK LOGIC: Original localStorage method ---
+        const ANSWER_PREFIX = 'modular-answer_';
         const keyRegex = new RegExp(`^${ANSWER_PREFIX}(.+)_sub_(.+)$`);
 
         for (let i = 0; i < localStorage.length; i++) {
@@ -22,58 +43,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 assignments.get(assignmentId).add(subId);
             }
         }
-
-        if (assignments.size === 0) {
-            assignmentListContainer.innerHTML = '<p>Noch keine Aufgaben bearbeitet. Starte eine Aufgabe, um sie hier zu sehen.</p>';
-            return;
-        }
-
-        for (const [assignmentId, subIds] of assignments.entries()) {
-            const groupDiv = document.createElement('div');
-            groupDiv.className = 'assignment-group';
-            const title = document.createElement('h2');
-            title.textContent = `Aufgabe: ${assignmentId}`;
-            groupDiv.appendChild(title);
-
-            const list = document.createElement('ul');
-            const sortedSubIds = Array.from(subIds).sort();
-            for (const subId of sortedSubIds) {
-                const listItem = document.createElement('li');
-                const link = document.createElement('a');
-                link.href = `../index.html?assignmentId=${assignmentId}&subId=${subId}`;
-                link.textContent = subId.replace(/-/g, ' ');
-                listItem.appendChild(link);
-                list.appendChild(listItem);
-            }
-            groupDiv.appendChild(list);
-            assignmentListContainer.appendChild(groupDiv);
-        }
     }
 
-    async function clearAllData() {
-        if (!confirm("Bist du sicher, dass du ALLE gespeicherten Arbeiten und Anhänge löschen möchtest? Diese Aktion kann nicht rückgängig gemacht werden.")) return;
 
-        // Clear localStorage
-        const keysToRemove = [];
-        for (let i = 0; i < localStorage.length; i++) {
-            const key = localStorage.key(i);
-            if (key.startsWith('modular-') || key.startsWith('studentIdentifier')) {
-                keysToRemove.push(key);
-            }
-        }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
-
-        // Clear IndexedDB
-        try {
-            await clearAllAttachments();
-            alert("Alle Daten wurden erfolgreich gelöscht.");
-            window.location.reload();
-        } catch (error) {
-            alert("Fehler beim Löschen der Anhänge. Die Textantworten wurden jedoch gelöscht.");
-            console.error("Fehler beim Leeren der IndexedDB:", error);
-        }
+    if (assignments.size === 0) {
+        assignmentListContainer.innerHTML = '<p>Keine Aufgaben gefunden. Importiere eine `submission.json`-Datei, um deine Arbeit anzuzeigen.</p>';
+        return;
     }
 
-    displaySavedAssignments();
-    clearAllDataBtn.addEventListener('click', clearAllData);
-});
+    // This rendering logic remains the same
+    for (const [assignmentId, subIds] of assignments.entries()) {
+        const groupDiv = document.createElement('div');
+        groupDiv.className = 'assignment-group';
+        
+        // Try to get a real title from the first sub-assignment if available
+        const firstSubId = subIds.values().next().value;
+        const mainTitle = localStorage.getItem(`title_${assignmentId}_sub_${firstSubId}`) ? assignmentId : `Aufgaben-Set: ${assignmentId}`;
+        
+        const title = document.createElement('h2');
+        title.textContent = mainTitle;
+        groupDiv.appendChild(title);
+
+        const list = document.createElement('ul');
+        const sortedSubIds = Array.from(subIds).sort();
+        for (const subId of sortedSubIds) {
+            const listItem = document.createElement('li');
+            const link = document.createElement('a');
+            link.href = `../index.html?assignmentId=${assignmentId}&subId=${subId}`;
+            link.textContent = subId.replace(/-/g, ' ');
+            listItem.appendChild(link);
+            list.appendChild(listItem);
+        }
+        groupDiv.appendChild(list);
+        assignmentListContainer.appendChild(groupDiv);
+    }
+}
