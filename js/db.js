@@ -1,23 +1,18 @@
-const DB_NAME = 'AssignmentFilesDB';
-const STORE_NAME = 'files';
+const DB_NAME = 'modular-assignments-db';
+const ATTACHMENT_STORE = 'attachments';
 let db;
 
-/**
- * Initializes the IndexedDB database.
- * @returns {Promise<IDBDatabase>} A promise that resolves with the database object.
- */
-export function initDB() {
+function initializeDB() {
     return new Promise((resolve, reject) => {
-        if (db) {
-            return resolve(db);
-        }
+        if (db) return resolve(db);
 
         const request = indexedDB.open(DB_NAME, 1);
 
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
-            if (!db.objectStoreNames.contains(STORE_NAME)) {
-                db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+            if (!db.objectStoreNames.contains(ATTACHMENT_STORE)) {
+                const store = db.createObjectStore(ATTACHMENT_STORE, { keyPath: 'id', autoIncrement: true });
+                store.createIndex('assignment_sub_idx', ['assignmentId', 'subId'], { unique: false });
             }
         };
 
@@ -27,84 +22,64 @@ export function initDB() {
         };
 
         request.onerror = (event) => {
-            console.error('Database error:', event.target.errorCode);
+            console.error("IndexedDB error:", event.target.errorCode);
             reject(event.target.errorCode);
         };
     });
 }
 
-/**
- * Adds a file to the IndexedDB store.
- * @param {string} assignmentId - The ID of the main assignment.
- * @param {string} subId - The ID of the sub-assignment.
- * @param {File} file - The file object to store.
- * @returns {Promise<void>}
- */
-export async function addFile(assignmentId, subId, file) {
-    const db = await initDB();
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
-    const fileRecord = {
-        id: `${assignmentId}_${subId}_${file.name}`,
-        assignmentId: assignmentId,
-        subId: subId,
-        file: file,
-        name: file.name,
-        type: file.type
-    };
+export async function saveAttachment(attachment) {
+    const db = await initializeDB();
+    const transaction = db.transaction([ATTACHMENT_STORE], 'readwrite');
+    const store = transaction.objectStore(ATTACHMENT_STORE);
     return new Promise((resolve, reject) => {
-        const request = store.put(fileRecord);
+        const request = store.add(attachment);
         request.onsuccess = () => resolve();
-        request.onerror = (event) => reject('Error adding file: ' + event.target.errorCode);
+        request.onerror = (e) => reject('Error saving attachment: ' + e.target.error);
     });
 }
 
-/**
- * Retrieves all files for a specific sub-assignment.
- * @param {string} assignmentId - The ID of the main assignment.
- * @param {string} subId - The ID of the sub-assignment.
- * @returns {Promise<Array<object>>} A promise that resolves with an array of file records.
- */
-export async function getFilesForAssignment(assignmentId, subId) {
-    const db = await initDB();
-    const transaction = db.transaction([STORE_NAME], 'readonly');
-    const store = transaction.objectStore(STORE_NAME);
-    const allRecords = await new Promise((resolve, reject) => {
-        const request = store.getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = (event) => reject('Error getting files: ' + event.target.errorCode);
-    });
-
-    return allRecords.filter(record => record.assignmentId === assignmentId && record.subId === subId);
-}
-
-/**
- * Deletes a file from IndexedDB by its unique ID.
- * @param {string} fileId - The unique ID of the file to delete.
- * @returns {Promise<void>}
- */
-export async function deleteFile(fileId) {
-    const db = await initDB();
-    const transaction = db.transaction([STORE_NAME], 'readwrite');
-    const store = transaction.objectStore(STORE_NAME);
+export async function getAttachmentsForSubAssignment(assignmentId, subId) {
+    const db = await initializeDB();
+    const transaction = db.transaction([ATTACHMENT_STORE], 'readonly');
+    const store = transaction.objectStore(ATTACHMENT_STORE);
+    const index = store.index('assignment_sub_idx');
     return new Promise((resolve, reject) => {
-        const request = store.delete(fileId);
-        request.onsuccess = () => resolve();
-        request.onerror = (event) => reject('Error deleting file: ' + event.target.errorCode);
+        const request = index.getAll([assignmentId, subId]);
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = (e) => reject('Error fetching attachments: ' + e.target.error);
     });
 }
 
-/**
- * Retrieves all files from the database to include in the final submission.
- * @returns {Promise<Array<object>>}
- */
-export async function getAllFiles() {
-    const db = await initDB();
-    const transaction = db.transaction([STORE_NAME], 'readonly');
-    const store = transaction.objectStore(STORE_NAME);
+export async function getAllAttachments() {
+    const db = await initializeDB();
+    const transaction = db.transaction([ATTACHMENT_STORE], 'readonly');
+    const store = transaction.objectStore(ATTACHMENT_STORE);
     return new Promise((resolve, reject) => {
         const request = store.getAll();
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject('Error fetching all files.');
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = (e) => reject('Error fetching all attachments: ' + e.target.error);
+    });
+}
+
+export async function deleteAttachment(id) {
+    const db = await initializeDB();
+    const transaction = db.transaction([ATTACHMENT_STORE], 'readwrite');
+    const store = transaction.objectStore(ATTACHMENT_STORE);
+    return new Promise((resolve, reject) => {
+        const request = store.delete(id);
+        request.onsuccess = () => resolve();
+        request.onerror = (e) => reject('Error deleting attachment: ' + e.target.error);
+    });
+}
+
+export async function clearAllAttachments() {
+    const db = await initializeDB();
+    const transaction = db.transaction([ATTACHMENT_STORE], 'readwrite');
+    const store = transaction.objectStore(ATTACHMENT_STORE);
+    return new Promise((resolve, reject) => {
+        const request = store.clear();
+        request.onsuccess = () => resolve();
+        request.onerror = (e) => reject('Error clearing attachments: ' + e.target.error);
     });
 }
