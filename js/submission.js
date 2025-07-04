@@ -1,4 +1,5 @@
 import { getAllFiles } from './db.js';
+import { SCRIPT_URL } from './config.js'; // Import the URL
 
 /**
  * Parses a localStorage key to extract assignment details.
@@ -33,11 +34,11 @@ function parseKey(key) {
 export async function gatherAllAssignmentsData() {
     let studentName = localStorage.getItem('studentName');
     if (!studentName) {
-        studentName = prompt("Bitte gib deinen Namen für die Abgabe ein:", "");
+        studentName = prompt("Please enter your name for the submission:", "");
         if (studentName) {
             localStorage.setItem('studentName', studentName);
         } else {
-            alert('Abgabe abgebrochen, da kein Name eingegeben wurde.');
+            alert('Submission cancelled because no name was entered.');
             return null;
         }
     }
@@ -56,7 +57,7 @@ export async function gatherAllAssignmentsData() {
 
     // Abort if there's nothing to submit
     if (assignmentIdsToFetch.size === 0 && (await getAllFiles()).length === 0) {
-        alert('Keine bearbeiteten Aufgaben oder Anhänge zum Abgeben gefunden.');
+        alert('No completed assignments or attachments to submit.');
         return null;
     }
 
@@ -157,20 +158,48 @@ export async function gatherAllAssignmentsData() {
     return studentData;
 }
 
+
 /**
- * Triggers the download of the submission data as a JSON file.
+ * Sends the submission data to the Google Apps Script endpoint.
  * @param {object} data - The complete data from gatherAllAssignmentsData.
  */
 export function submitAssignment(data) {
     if (!data) return;
 
-    const filename = `submission-${data.studentName.replace(/\s+/g, '_')}-${new Date().toISOString().split('T')[0]}.json`;
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    alert('Deine Antworten und Anhänge wurden als JSON-Datei heruntergeladen.');
+    if (!SCRIPT_URL) {
+        alert("Submission error: The Google Apps Script URL is not configured. Please set it in 'js/config.js'.");
+        console.error("SCRIPT_URL is not set in js/config.js");
+        return;
+    }
+
+    const submitButton = document.getElementById('submit-all');
+    submitButton.textContent = 'Submitting...';
+    submitButton.disabled = true;
+
+    fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'cors', // Important for cross-origin requests
+        cache: 'no-cache',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+        redirect: 'follow'
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.status === "success") {
+            alert(`Success! Your work has been submitted. You can view it here: ${result.folderUrl}`);
+        } else {
+            throw new Error(result.message || 'An unknown error occurred during submission.');
+        }
+    })
+    .catch(error => {
+        console.error('Submission Error:', error);
+        alert(`An error occurred while submitting your work: ${error.message}`);
+    })
+    .finally(() => {
+        submitButton.textContent = 'Alle Aufträge abgeben';
+        submitButton.disabled = false;
+    });
 }

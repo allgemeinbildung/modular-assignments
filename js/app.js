@@ -9,8 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewMode = urlParams.get('view');
 
     if (!assignmentId || !subId) {
-        document.getElementById('main-title').textContent = 'Fehler';
-        document.getElementById('content-renderer').innerHTML = '<p>Keine assignmentId oder subId in der URL gefunden.</p>';
+        document.getElementById('main-title').textContent = 'Error';
+        document.getElementById('content-renderer').innerHTML = '<p>No assignmentId or subId found in the URL.</p>';
         return;
     }
 
@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
         submitButton.addEventListener('click', async () => {
             const allData = await gatherAllAssignmentsData();
             if (allData) {
+                // This function now sends data to the Apps Script
                 submitAssignment(allData);
             }
         });
