@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const assignmentId = urlParams.get('assignmentId');
     const subId = urlParams.get('subId');
-    const viewMode = urlParams.get('view'); // Check for the solution view parameter
+    const viewMode = urlParams.get('view');
 
     if (!assignmentId || !subId) {
         document.getElementById('main-title').textContent = 'Fehler';
@@ -11,7 +11,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Event Listener for the Submit-Button hinzufügen (nur wenn nicht im Lösungsmodus)
     const submitButton = document.getElementById('submit-all');
     if (submitButton && viewMode !== 'solution') {
         submitButton.addEventListener('click', () => {
@@ -38,7 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(`Teilaufgabe mit der ID "${subId}" in der JSON-Datei nicht gefunden.`);
             }
             
-            // ROUTING: Decide whether to show the assignment or the solution
             if (viewMode === 'solution') {
                 renderSolution(subAssignmentData);
             } else {
@@ -53,29 +51,44 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
- * NEW: Renders the solution for a given sub-assignment.
+ * UPDATED: Renders the solution for a given sub-assignment.
  * @param {object} subAssignmentData The data object for the sub-assignment.
  */
 function renderSolution(subAssignmentData) {
     document.getElementById('sub-title').textContent = `Lösung: ${subAssignmentData.title}`;
     document.getElementById('instructions').innerHTML = subAssignmentData.instructions;
-    document.getElementById('action-container').style.display = 'none'; // Hide submit button
+    document.getElementById('action-container').style.display = 'none';
 
     const contentRenderer = document.getElementById('content-renderer');
     contentRenderer.innerHTML = ''; 
 
     switch (subAssignmentData.type) {
         case 'quill':
-            // For Quill, render the HTML solution content if it exists [cite: 153, 154]
+            // Display the original questions first
+            const questionsList = document.createElement('ol');
+            subAssignmentData.questions.forEach(q => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = q.text; // Use innerHTML to render bold/italic tags
+                questionsList.appendChild(listItem);
+            });
+            contentRenderer.appendChild(questionsList);
+
+            // Then, display the solution in a styled box
             if (subAssignmentData.solution && subAssignmentData.solution.type === 'html') {
-                contentRenderer.innerHTML = subAssignmentData.solution.content;
+                const solutionBox = document.createElement('div');
+                solutionBox.style.backgroundColor = '#e9f7ef';
+                solutionBox.style.border = '1px solid #a3d9b1';
+                solutionBox.style.borderRadius = '5px';
+                solutionBox.style.padding = '15px';
+                solutionBox.style.marginTop = '20px';
+                solutionBox.innerHTML = subAssignmentData.solution.content;
+                contentRenderer.appendChild(solutionBox);
             } else {
-                contentRenderer.innerHTML = '<p>Für diese Aufgabe ist keine Lösung im HTML-Format verfügbar.</p>';
+                contentRenderer.innerHTML += '<p>Für diese Aufgabe ist keine Lösung im HTML-Format verfügbar.</p>';
             }
             break;
         
         case 'multipleChoice':
-            // For quizzes, render the questions with the correct answer highlighted [cite: 155]
             const quizForm = document.createElement('form');
             quizForm.id = 'quiz-form-solution';
 
@@ -92,7 +105,6 @@ function renderSolution(subAssignmentData) {
                     const label = document.createElement('label');
                     label.textContent = option.text;
 
-                    // Highlight the correct answer
                     if (option.is_correct) {
                         label.style.fontWeight = 'bold';
                         label.style.color = 'green';
@@ -112,7 +124,6 @@ function renderSolution(subAssignmentData) {
     }
 }
 
-
 /**
  * Master-Renderer: Leitet die Daten basierend auf dem Typ an die spezifische Render-Funktion weiter.
  * @param {object} subAssignmentData Das Datenobjekt der Teilaufgabe.
@@ -122,7 +133,7 @@ function renderSolution(subAssignmentData) {
 function renderSubAssignment(subAssignmentData, assignmentId, subId) {
     document.getElementById('sub-title').textContent = subAssignmentData.title;
     document.getElementById('instructions').innerHTML = subAssignmentData.instructions;
-    document.getElementById('action-container').style.display = 'block'; // Ensure submit button is visible
+    document.getElementById('action-container').style.display = 'block';
 
     const contentRenderer = document.getElementById('content-renderer');
     contentRenderer.innerHTML = '';
@@ -168,13 +179,11 @@ function renderQuill(data, assignmentId, subId) {
         }
     });
     
-    // Gespeicherte Daten laden
     const savedData = localStorage.getItem(storageKey);
     if (savedData) {
         quill.setContents(JSON.parse(savedData));
     }
 
-    // Änderungen im Editor speichern
     quill.on('text-change', () => {
         localStorage.setItem(storageKey, JSON.stringify(quill.getContents()));
     });
@@ -232,7 +241,7 @@ function renderMultipleChoice(data, assignmentId, subId) {
         questionContainer.appendChild(feedbackElement);
         
         if (savedAnswer) {
-            const selectedOption = questionData.options.find(o => o.text === savedAnswer);
+            const selectedOption = data.questions.find(q => q.id === questionData.id).options.find(o => o.text === savedAnswer);
             if (selectedOption) {
                 feedbackElement.textContent = selectedOption.feedback;
                 feedbackElement.className = `feedback ${selectedOption.is_correct ? 'correct' : 'incorrect'}`;
@@ -290,7 +299,7 @@ function submitAssignment(data) {
         alert('Keine bearbeiteten Aufgaben zum Abgeben gefunden.');
         return;
     }
-    const filename = `submission-${data.studentName}-${data.submissionDate.split('T')[0]}.json`;
+    const filename = `submission-${data.studentName}-${new Date().toISOString().split('T')[0]}.json`;
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
