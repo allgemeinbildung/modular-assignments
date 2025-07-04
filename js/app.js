@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
  * @param {object} subAssignmentData Das Datenobjekt der Teilaufgabe.
  */
 function renderSubAssignment(subAssignmentData) {
-    [cite_start]// Gemeinsame Elemente wie Titel und Anweisungen füllen [cite: 109, 110, 111]
+    // Gemeinsame Elemente wie Titel und Anweisungen füllen
     document.getElementById('sub-title').textContent = subAssignmentData.title;
     document.getElementById('instructions').innerHTML = subAssignmentData.instructions;
 
@@ -71,17 +71,17 @@ function renderSubAssignment(subAssignmentData) {
 function renderQuill(data) {
     const contentRenderer = document.getElementById('content-renderer');
 
-    [cite_start]// Liste der Fragen erstellen und anhängen [cite: 100]
+    // Liste der Fragen erstellen und anhängen
     const questionsList = document.createElement('ol');
     data.questions.forEach(q => {
         const listItem = document.createElement('li');
         // We use innerHTML to correctly render potential formatting in the question text.
-        listItem.innerHTML = `${q.text}`; 
+        listItem.innerHTML = `${q.text}`;
         questionsList.appendChild(listItem);
     });
     contentRenderer.appendChild(questionsList);
 
-    [cite_start]// Div für den Quill-Editor erstellen und initialisieren [cite: 101]
+    // Div für den Quill-Editor erstellen und initialisieren
     const editorDiv = document.createElement('div');
     editorDiv.id = 'quill-editor';
     contentRenderer.appendChild(editorDiv);
@@ -99,7 +99,7 @@ function renderQuill(data) {
 }
 
 /**
- * [cite_start]Rendert ein Multiple-Choice-Quiz. [cite: 125]
+ * Rendert ein Multiple-Choice-Quiz.
  * @param {object} data Das Datenobjekt der Teilaufgabe.
  */
 function renderMultipleChoice(data) {
@@ -150,14 +150,14 @@ function renderMultipleChoice(data) {
 
     contentRenderer.appendChild(quizForm);
 
-    [cite_start]// Event Listener hinzufügen, um Feedback zu geben [cite: 128]
+    // Event Listener hinzufügen, um Feedback zu geben
     quizForm.addEventListener('change', (event) => {
         if (event.target.type === 'radio') {
             const questionId = event.target.name;
             const selectedValue = event.target.value;
             const questionData = data.questions.find(q => q.id === questionId);
             const selectedOption = questionData.options.find(o => o.text === selectedValue);
-            
+
             const feedbackElement = document.getElementById(`feedback-${questionId}`);
             feedbackElement.textContent = selectedOption.feedback;
             feedbackElement.className = `feedback ${selectedOption.is_correct ? 'correct' : 'incorrect'}`;
