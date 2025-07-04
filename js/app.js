@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. URL-Parameter auslesen [cite: 89]
+    // 1. URL-Parameter auslesen
     const urlParams = new URLSearchParams(window.location.search);
     const assignmentId = urlParams.get('assignmentId');
     const subId = urlParams.get('subId');
@@ -10,52 +10,51 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // 2. JSON abrufen - KORRIGIERTER PFAD
-    const jsonPath = `assignments/${assignmentId}.json`; // Korrektur: "../" entfernt
+    // 2. JSON-Datei abrufen
+    const jsonPath = `assignments/${assignmentId}.json`;
 
     fetch(jsonPath)
         .then(response => {
             if (!response.ok) {
-                throw new Error(`HTTP-Fehler! Status: ${response.status}`); [cite: 92]
+                throw new Error(`HTTP-Fehler! Status: ${response.status}, Pfad: ${jsonPath}`);
             }
             return response.json();
         })
         .then(data => {
             document.getElementById('main-title').textContent = data.assignmentTitle;
-            const subAssignmentData = data.subAssignments[subId]; [cite: 94]
+            const subAssignmentData = data.subAssignments[subId];
 
             if (!subAssignmentData) {
-                throw new Error(`Teilaufgabe mit der ID "${subId}" nicht gefunden.`);
+                throw new Error(`Teilaufgabe mit der ID "${subId}" in der JSON-Datei nicht gefunden.`);
             }
 
-            // 3. Inhalt basierend auf dem 'type' rendern [cite: 95]
+            // 3. Inhalt basierend auf dem 'type' rendern
             if (subAssignmentData.type === 'quill') {
-                renderQuill(subAssignmentData); [cite: 97]
+                renderQuill(subAssignmentData);
             } else {
-                // Platzhalter für zukünftige Renderer
                 document.getElementById('content-renderer').innerHTML = `<p>Renderer für den Typ "${subAssignmentData.type}" ist noch nicht implementiert.</p>`;
             }
         })
         .catch(error => {
             console.error('Fehler beim Laden der Aufgabe:', error);
             document.getElementById('main-title').textContent = 'Fehler beim Laden der Aufgabe';
-            document.getElementById('content-renderer').innerHTML = `<p>Die Aufgabendatei unter <code>${jsonPath}</code> konnte nicht geladen werden. Bitte überprüfen Sie die URL und stellen Sie sicher, dass die Datei existiert.</p>`; [cite: 92]
+            document.getElementById('content-renderer').innerHTML = `<p>Ein Fehler ist aufgetreten. Bitte überprüfen Sie die Browser-Konsole für weitere Details.</p><p>Fehlermeldung: ${error.message}</p>`;
         });
 });
 
 /**
  * Rendert eine Quill-basierte Aufgabe.
- * @param {object} data Das Datenobjekt der Teilaufgabe. [cite: 98]
+ * @param {object} data Das Datenobjekt der Teilaufgabe.
  */
 function renderQuill(data) {
-    // Header-Elemente füllen [cite: 99]
+    // Header-Elemente füllen
     document.getElementById('sub-title').textContent = data.title;
     document.getElementById('instructions').innerHTML = data.instructions;
 
     const contentRenderer = document.getElementById('content-renderer');
     contentRenderer.innerHTML = ''; // Vorherigen Inhalt löschen
 
-    // Liste der Fragen erstellen und anhängen [cite: 100]
+    // Liste der Fragen erstellen und anhängen
     const questionsList = document.createElement('ol');
     data.questions.forEach(q => {
         const listItem = document.createElement('li');
@@ -69,7 +68,7 @@ function renderQuill(data) {
     editorDiv.id = 'quill-editor';
     contentRenderer.appendChild(editorDiv);
     
-    // Quill-Editor initialisieren [cite: 101]
+    // Quill-Editor initialisieren
     const quill = new Quill('#quill-editor', {
         theme: 'snow',
         modules: {
