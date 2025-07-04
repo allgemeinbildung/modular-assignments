@@ -1,0 +1,40 @@
+{
+  "assignmentTitle": "3.4 Migration, Integration und Rassismus",
+  "subAssignments": {
+    "Migrationsgruende-Push-Pull-Faktoren": {
+      "type": "quill",
+      "title": "Migrationsgründe: Push- und Pull-Faktoren",
+      "instructions": "<p>Beantworte die folgenden Fragen basierend auf dem Text auf Seite 106.</p>",
+      "questions": [
+        {
+          "id": "q1",
+          "text": "Was ist der *Unterschied* zwischen **Push- und Pull-Faktoren** im Zusammenhang mit Migration? Erläutern Sie beide Begriffe."
+        },
+        {
+          "id": "q2",
+          "text": "Nennen Sie *jeweils drei konkrete Beispiele* für **Push-Faktoren** und *drei Beispiele* für **Pull-Faktoren**, die im Text auf Seite 106 genannt werden."
+        }
+      ],
+      "solution": {
+        "type": "html",
+        "content": "<h4>Lösung zu Push- und Pull-Faktoren</h4><p>Push-Faktoren sind Gründe, die Menschen aus ihrem Heimatland 'wegdrücken' (z.B. Krieg, Armut, Verfolgung). Pull-Faktoren sind Gründe, die Menschen in ein neues Land 'ziehen' (z.B. bessere Arbeitsplätze, Sicherheit, Bildungschancen).</p>"
+      }
+    },
+    "Grundlagen_Quiz": {
+      "type": "multipleChoice",
+      "title": "Grundlagen Quiz",
+      "instructions": "<p>Überprüfe dein Wissen mit diesem Quiz.</p>",
+      "questions": [
+        {
+          "id": "mq1",
+          "question": "<p>Welches der folgenden ist ein typischer Push-Faktor?</p>",
+          "options": [
+            { "text": "Hohe Löhne", "is_correct": false, "feedback": "Falsch, das ist ein Pull-Faktor." },
+            { "text": "Politische Stabilität", "is_correct": false, "feedback": "Falsch, das ist ein Pull-Faktor." },
+            { "text": "Krieg", "is_correct": true, "feedback": "Richtig, Krieg drückt Menschen aus ihrer Heimat." }
+          ]
+        }
+      ]
+    }
+  }
+}
