@@ -7,7 +7,6 @@ const TITLE_PREFIX = 'title_';
 
 /**
  * Gathers all assignment data from localStorage and IndexedDB.
- * This function mimics the logic from the working `textboxv2`.
  */
 async function gatherAllAssignmentsData() {
     let identifier = localStorage.getItem('studentIdentifier');
@@ -69,8 +68,8 @@ async function gatherAllAssignmentsData() {
         }
     });
 
-    if (Object.keys(allDataPayload).length === 0) {
-        alert("Es wurden keine gespeicherten Aufträge zum Senden gefunden.");
+    if (Object.keys(allDataPayload).length === 0 && allAttachments.length === 0) {
+        alert("Es wurden keine gespeicherten Daten zum Senden gefunden.");
         return null;
     }
 
@@ -86,17 +85,17 @@ async function gatherAllAssignmentsData() {
  * Main submission function. Gathers data and sends it to Google Apps Script.
  */
 export async function submitAssignment() {
-    console.log("Starting submission process...");
+    console.log("Starting data backup process...");
     const finalObject = await gatherAllAssignmentsData();
     if (!finalObject) return;
 
-    if (!SCRIPT_URL || SCRIPT_URL === 'PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE') {
+    if (!SCRIPT_URL || SCRIPT_URL.includes('PASTE_YOUR_GOOGLE_SCRIPT_URL_HERE')) {
         alert('Konfigurationsfehler: Die Abgabe-URL ist nicht in js/config.js festgelegt.');
         return;
     }
 
-    if (!confirm("Du bist dabei, ALLE gespeicherten Aufträge an deinen Lehrer zu senden. Fortfahren?")) {
-        alert("Abgabe abgebrochen.");
+    if (!confirm("Du bist dabei, ein Backup ALLER gespeicherten Aufträge an deinen Lehrer zu senden. Fortfahren?")) {
+        alert("Aktion abgebrochen.");
         return;
     }
 
@@ -113,8 +112,8 @@ export async function submitAssignment() {
         const result = await response.json();
 
         if (response.ok && result.status === 'success') {
-            // ✅ MODIFIED LINE: Use result.docUrl instead of result.folderUrl
-            alert(`Deine Arbeiten wurden erfolgreich übermittelt.\n\nDu kannst sie hier einsehen:\n${result.docUrl}`);
+            // ✅ MODIFIED: Simple confirmation message
+            alert('Deine Daten wurden erfolgreich übermittelt.');
         } else {
             throw new Error(result.message || 'Ein unbekannter Server-Fehler ist aufgetreten.');
         }
