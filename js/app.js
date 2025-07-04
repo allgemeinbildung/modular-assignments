@@ -274,8 +274,21 @@ function renderMultipleChoice(data, assignmentId, subId) {
  * @returns {object} Ein Objekt mit allen gesammelten Daten.
  */
 function gatherAllAssignmentsData() {
+    let studentName = localStorage.getItem('studentName');
+
+    // **NEW**: Prompt for name if it's not set
+    if (!studentName) {
+        studentName = prompt("Bitte gib deinen Namen für die Abgabe ein:", "");
+        if (studentName) {
+            localStorage.setItem('studentName', studentName);
+        } else {
+            // If user cancels or enters nothing, return null to stop submission.
+            return null; 
+        }
+    }
+
     const studentData = {
-        studentName: localStorage.getItem('studentName') || 'UnknownStudent',
+        studentName: studentName,
         submissionDate: new Date().toISOString(),
         assignments: {}
     };
@@ -295,6 +308,12 @@ function gatherAllAssignmentsData() {
  * @param {object} data Die gesammelten Schülerdaten.
  */
 function submitAssignment(data) {
+    // **NEW**: Check if data is null (from cancelled prompt)
+    if (!data) {
+        alert('Abgabe abgebrochen, da kein Name eingegeben wurde.');
+        return;
+    }
+
     if (Object.keys(data.assignments).length === 0) {
         alert('Keine bearbeiteten Aufgaben zum Abgeben gefunden.');
         return;
