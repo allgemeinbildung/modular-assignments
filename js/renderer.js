@@ -54,30 +54,6 @@ async function renderQuill(data, assignmentId, subId) {
         }
     }, 500));
     
-    const attachmentContainer = document.createElement('div');
-    attachmentContainer.className = 'attachments-section';
-    attachmentContainer.style.marginTop = '20px';
-    attachmentContainer.innerHTML = `
-        <h4>Externe Anhänge (Dateien)</h4>
-        <label for="file-attachment" class="file-upload-btn">Datei hochladen</label>
-        <input type="file" id="file-attachment" style="display: none;">
-        <div id="current-attachments"></div>`;
-    contentRenderer.appendChild(attachmentContainer);
-
-    const fileInput = document.getElementById('file-attachment');
-    const attachmentsListDiv = document.getElementById('current-attachments');
-
-    const refreshAttachments = async () => {
-        const attachments = await getAttachmentsForSubAssignment(assignmentId, subId);
-        attachmentsListDiv.innerHTML = '';
-        attachments.forEach(att => {
-            const item = document.createElement('div');
-            item.className = 'attachment-item';
-            item.innerHTML = `<span>${att.fileName}</span><button data-id="${att.id}">Löschen</button>`;
-            attachmentsListDiv.appendChild(item);
-        });
-    };
-
     fileInput.addEventListener('change', (event) => {
         const file = event.target.files[0];
         if (!file) return;
