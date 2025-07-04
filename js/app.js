@@ -135,7 +135,9 @@ function renderSolution(subAssignmentData) {
     }
 }
 
-
+/**
+ * Renders the interactive part of a sub-assignment.
+ */
 async function renderSubAssignment(subAssignmentData, assignmentId, subId) {
     document.getElementById('sub-title').textContent = subAssignmentData.title;
     document.getElementById('instructions').innerHTML = subAssignmentData.instructions;
@@ -160,7 +162,86 @@ async function renderSubAssignment(subAssignmentData, assignmentId, subId) {
         default:
             contentRenderer.innerHTML = '<p>Error: Unknown assignment type.</p>';
     }
+
+    // After rendering the assignment, render the solution importer UI
+    renderSolutionImporter(assignmentId, subId);
 }
+
+/**
+ * Creates the UI for the "Import Solution" feature.
+ * @param {string} assignmentId - The current assignment ID.
+ * @param {string} subId - The current sub-assignment ID.
+ */
+function renderSolutionImporter(assignmentId, subId) {
+    const container = document.getElementById('solution-import-container');
+    container.innerHTML = ''; // Clear previous content
+
+    const importButton = document.createElement('button');
+    importButton.textContent = 'Lösung importieren';
+    importButton.className = 'import-solution-btn';
+
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json';
+    fileInput.style.display = 'none';
+
+    importButton.onclick = () => fileInput.click();
+
+    fileInput.onchange = (event) => handleSolutionFileSelect(event, assignmentId, subId);
+
+    container.appendChild(importButton);
+    container.appendChild(fileInput);
+}
+
+/**
+ * Handles the file selection, validation, and triggers the display of the solution.
+ * @param {Event} event - The file input change event.
+ * @param {string} assignmentId - The expected assignment ID.
+ * @param {string} subId - The expected sub-assignment ID.
+ */
+function handleSolutionFileSelect(event, assignmentId, subId) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            const expectedTitle = document.getElementById('main-title').textContent;
+
+            // Validate if the imported file matches the current assignment
+            if (importedData.assignmentTitle !== expectedTitle || !importedData.subAssignments[subId]) {
+                alert('Fehler: Diese Lösungsdatei passt nicht zur aktuellen Aufgabe. Bitte die korrekte JSON-Datei auswählen.');
+                return;
+            }
+
+            const solutionSubAssignmentData = importedData.subAssignments[subId];
+            displayImportedSolution(solutionSubAssignmentData);
+
+        } catch (error) {
+            alert('Fehler: Die Datei konnte nicht als gültige JSON-Datei gelesen werden.\n' + error);
+        }
+    };
+    reader.readAsText(file);
+}
+
+/**
+ * Renders the solution from a validated file into its dedicated container.
+ * @param {object} solutionSubAssignmentData - The sub-assignment object from the imported file.
+ */
+function displayImportedSolution(solutionSubAssignmentData) {
+    const solutionContainer = document.getElementById('solution-display-container');
+    solutionContainer.innerHTML = ''; // Clear previous solution
+    solutionContainer.style.display = 'block'; // Make it visible
+
+    const title = document.createElement('h3');
+    title.textContent = `Importierte Lösung für: ${solutionSubAssignmentData.title}`;
+    solutionContainer.appendChild(title);
+    
+    // Use the same logic as renderSolution, but target the new container
+    renderSolution(solutionSubAssignmentData, solutionContainer);
+}
+
 
 async function renderQuill(data, assignmentId, subId) {
     const contentRenderer = document.getElementById('content-renderer');
@@ -471,11 +552,11 @@ function renderDragTheWords(data, assignmentId, subId) {
                 targetZone.style.backgroundColor = '';
                 if (draggedItem) {
                    if (targetZone.children.length === 0 || targetZone.id === 'word-bank') {
-                      if(targetZone.children.length > 0 && targetZone.id !== 'word-bank') {
-                          wordBank.appendChild(targetZone.children[0]);
-                      }
-                      targetZone.appendChild(draggedItem);
-                      saveState();
+                         if(targetZone.children.length > 0 && targetZone.id !== 'word-bank') {
+                               wordBank.appendChild(targetZone.children[0]);
+                         }
+                         targetZone.appendChild(draggedItem);
+                         saveState();
                    }
                 }
             }
@@ -501,8 +582,8 @@ function renderDragTheWords(data, assignmentId, subId) {
                     allCorrect = false;
                 }
             } else {
-                 zone.style.borderColor = 'red';
-                 allCorrect = false;
+               zone.style.borderColor = 'red';
+               allCorrect = false;
             }
         });
         if(allCorrect) {

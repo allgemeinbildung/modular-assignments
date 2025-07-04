@@ -34,3 +34,20 @@
     margin: 0 5px;
     padding: 2px;
 }
+
+/* Styles for the new imported solution container */
+#solution-display-container {
+    margin-top: 30px;
+    padding: 20px;
+    border: 2px solid #28a745; /* Green border */
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    display: none; /* Hidden by default */
+}
+
+#solution-display-container h3 {
+    margin-top: 0;
+    color: #003f5c;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 10px;
+}
