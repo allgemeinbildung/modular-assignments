@@ -9,6 +9,10 @@
         #results { display: none; margin-top: 1em; }
         pre { background-color: #f4f4f4; padding: 1em; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
         h2 { border-bottom: 2px solid #eee; padding-bottom: 0.5em; }
+        .attachment-list { list-style: none; padding: 0; }
+        .attachment-list li { margin-bottom: 0.5em; }
+        .attachment-list a { display: inline-block; padding: 5px 10px; background-color: #007bff; color: white; text-decoration: none; border-radius: 3px; }
+        .attachment-list a:hover { background-color: #0056b3; }
     </style>
 </head>
 <body>
@@ -20,6 +24,11 @@
     <div id="results">
         <h2>Informationen zur Abgabe</h2>
         <div id="submission-info"></div>
+
+        <div id="attachments-container" style="display: none;">
+            <h2>Anhänge</h2>
+            <ul id="attachments-list" class="attachment-list"></ul>
+        </div>
 
         <h2>Abgegebene Antworten (Rohdaten)</h2>
         <pre><code id="json-output"></code></pre>
@@ -39,15 +48,32 @@
                     const resultsDiv = document.getElementById('results');
                     const infoDiv = document.getElementById('submission-info');
                     const outputCode = document.getElementById('json-output');
+                    const attachmentsContainer = document.getElementById('attachments-container');
+                    const attachmentsList = document.getElementById('attachments-list');
 
-                    // Display general info
                     infoDiv.innerHTML = `
                         <p><strong>Schüler:</strong> ${data.studentName || 'Unbekannt'}</p>
                         <p><strong>Abgabedatum:</strong> ${new Date(data.submissionDate).toLocaleString('de-CH')}</p>
                     `;
 
-                    // Display raw JSON
                     outputCode.textContent = JSON.stringify(data.assignments, null, 2);
+                    
+                    attachmentsList.innerHTML = '';
+                    if (data.attachments && Object.keys(data.attachments).length > 0) {
+                        for (const key in data.attachments) {
+                            const attachment = data.attachments[key];
+                            const listItem = document.createElement('li');
+                            const link = document.createElement('a');
+                            link.href = attachment.content;
+                            link.download = attachment.name;
+                            link.textContent = `Download: ${attachment.name}`;
+                            listItem.appendChild(link);
+                            attachmentsList.appendChild(listItem);
+                        }
+                        attachmentsContainer.style.display = 'block';
+                    } else {
+                        attachmentsContainer.style.display = 'none';
+                    }
 
                     resultsDiv.style.display = 'block';
                 } catch (error) {
