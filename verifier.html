@@ -5,20 +5,32 @@
     <title>Abgabe Überprüfen</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body { font-family: sans-serif; line-height: 1.6; margin: 2em; }
-        #results { display: none; margin-top: 1em; }
-        pre { background-color: #f4f4f4; padding: 1em; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
-        h2 { border-bottom: 2px solid #eee; padding-bottom: 0.5em; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; line-height: 1.6; margin: 2em; background-color: #f8f9fa; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 2em; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.1); }
+        h1, h2, h3, h4 { border-bottom: 1px solid #dee2e6; padding-bottom: 0.5em; }
+        h1 { font-size: 2em; }
+        h2 { font-size: 1.7em; background-color: #e9ecef; padding: 0.5em; margin-top: 2em; border-radius: 4px; }
+        h3 { font-size: 1.4em; color: #343a40; margin-top: 1.5em; }
+        h4 { font-size: 1.2em; color: #495057; }
+        .assignment { margin-bottom: 2em; }
+        .sub-assignment { padding-left: 20px; border-left: 4px solid #007bff; margin-top: 1em; }
+        .question-block { margin-bottom: 1.5em; padding-top: 1em; }
+        .question-text { font-weight: bold; font-size: 1.1em; }
+        .answer { padding: 10px; border: 1px solid #ced4da; border-radius: 4px; margin-top: 8px; }
+        .answer.correct { background-color: #d4edda; border-color: #c3e6cb; }
+        .answer.incorrect { background-color: #f8d7da; border-color: #f5c6cb; }
+        pre { background-color: #f1f1f1; padding: 1em; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; border-radius: 4px; }
         .attachment-list { list-style: none; padding: 0; }
         .attachment-list li { margin-bottom: 0.5em; }
         .attachment-list a { display: inline-block; padding: 5px 10px; background-color: #007bff; color: white; text-decoration: none; border-radius: 3px; }
         .attachment-list a:hover { background-color: #0056b3; }
+        #results { display: none; margin-top: 1em; }
     </style>
 </head>
 <body>
+<div class="container">
     <h1>Abgabe Überprüfen</h1>
     <p>Bitte wähle die <code>submission-....json</code> Datei aus, die der Schüler abgegeben hat.</p>
-
     <input type="file" id="json-file-input" accept=".json">
 
     <div id="results">
@@ -26,62 +38,130 @@
         <div id="submission-info"></div>
 
         <div id="attachments-container" style="display: none;">
-            <h2>Anhänge</h2>
+            <h3>Anhänge</h3>
             <ul id="attachments-list" class="attachment-list"></ul>
         </div>
 
-        <h2>Abgegebene Antworten (Rohdaten)</h2>
-        <pre><code id="json-output"></code></pre>
+        <div id="rendered-content"></div>
+
+        <h3>Rohdaten der Abgabe</h3>
+        <details>
+            <summary>Klicken, um die vollständige JSON-Datei anzuzeigen</summary>
+            <pre><code id="json-output"></code></pre>
+        </details>
     </div>
+</div>
 
-    <script>
-        document.getElementById('json-file-input').addEventListener('change', function(event) {
-            const file = event.target.files[0];
-            if (!file) {
-                return;
+<script>
+    document.getElementById('json-file-input').addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                document.getElementById('submission-info').innerHTML = `
+                    <p><strong>Schüler:</strong> ${data.studentName || 'Unbekannt'}</p>
+                    <p><strong>Abgabedatum:</strong> ${new Date(data.submissionDate).toLocaleString('de-CH')}</p>
+                `;
+                document.getElementById('json-output').textContent = JSON.stringify(data, null, 2);
+                
+                renderAttachments(data.attachments);
+                renderAssignments(data.assignments, document.getElementById('rendered-content'));
+
+                document.getElementById('results').style.display = 'block';
+            } catch (error) {
+                alert('Fehler: Die ausgewählte Datei ist keine gültige JSON-Datei oder hat eine unerwartete Struktur.\n' + error);
+                console.error(error);
             }
+        };
+        reader.readAsText(file);
+    });
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = JSON.parse(e.target.result);
-                    const resultsDiv = document.getElementById('results');
-                    const infoDiv = document.getElementById('submission-info');
-                    const outputCode = document.getElementById('json-output');
-                    const attachmentsContainer = document.getElementById('attachments-container');
-                    const attachmentsList = document.getElementById('attachments-list');
+    function renderAttachments(attachments) {
+        const container = document.getElementById('attachments-container');
+        const list = document.getElementById('attachments-list');
+        list.innerHTML = '';
+        if (attachments && Object.keys(attachments).length > 0) {
+            for (const key in attachments) {
+                const attachment = attachments[key];
+                const link = document.createElement('a');
+                link.href = attachment.content;
+                link.download = attachment.name;
+                link.textContent = `Download: ${attachment.name}`;
+                const listItem = document.createElement('li');
+                listItem.appendChild(link);
+                list.appendChild(listItem);
+            }
+            container.style.display = 'block';
+        } else {
+            container.style.display = 'none';
+        }
+    }
 
-                    infoDiv.innerHTML = `
-                        <p><strong>Schüler:</strong> ${data.studentName || 'Unbekannt'}</p>
-                        <p><strong>Abgabedatum:</strong> ${new Date(data.submissionDate).toLocaleString('de-CH')}</p>
-                    `;
+    function renderAssignments(assignments, container) {
+        container.innerHTML = '';
+        for (const assignmentId in assignments) {
+            const assignmentData = assignments[assignmentId];
+            const assignmentDiv = document.createElement('div');
+            assignmentDiv.className = 'assignment';
+            assignmentDiv.innerHTML = `<h2>${assignmentData.assignmentTitle}</h2>`;
 
-                    outputCode.textContent = JSON.stringify(data.assignments, null, 2);
+            for (const subId in assignmentData.subAssignments) {
+                const subData = assignmentData.subAssignments[subId];
+                const subDiv = document.createElement('div');
+                subDiv.className = 'sub-assignment';
+                subDiv.innerHTML = `<h3>${subData.title}</h3>`;
+
+                if (subData.type === 'quill') {
+                    const ol = document.createElement('ol');
+                    subData.questions.forEach(q => {
+                        const li = document.createElement('li');
+                        li.innerHTML = q.text;
+                        ol.appendChild(li);
+                    });
+                    subDiv.appendChild(ol);
                     
-                    attachmentsList.innerHTML = '';
-                    if (data.attachments && Object.keys(data.attachments).length > 0) {
-                        for (const key in data.attachments) {
-                            const attachment = data.attachments[key];
-                            const listItem = document.createElement('li');
-                            const link = document.createElement('a');
-                            link.href = attachment.content;
-                            link.download = attachment.name;
-                            link.textContent = `Download: ${attachment.name}`;
-                            listItem.appendChild(link);
-                            attachmentsList.appendChild(listItem);
-                        }
-                        attachmentsContainer.style.display = 'block';
-                    } else {
-                        attachmentsContainer.style.display = 'none';
+                    const answerPre = document.createElement('pre');
+                    try {
+                       answerPre.textContent = JSON.stringify(JSON.parse(subData.answer), null, 2);
+                    } catch {
+                       answerPre.textContent = subData.answer || 'Keine Antwort vorhanden.';
                     }
+                    subDiv.innerHTML += `<h4>Antwort des Schülers:</h4>`;
+                    subDiv.appendChild(answerPre);
 
-                    resultsDiv.style.display = 'block';
-                } catch (error) {
-                    alert('Fehler: Die ausgewählte Datei ist keine gültige JSON-Datei.\n' + error);
+                } else if (subData.type === 'quiz') {
+                    subData.questions.forEach(q => {
+                        const questionBlock = document.createElement('div');
+                        questionBlock.className = 'question-block';
+                        questionBlock.innerHTML = `<p class="question-text">${q.question}</p>`;
+
+                        let studentAns = q.studentAnswer;
+                        try {
+                           studentAns = JSON.parse(studentAns).join(', ');
+                        } catch {}
+
+                        let correctAns = Array.isArray(q.correctAnswer) ? q.correctAnswer.join(', ') : String(q.correctAnswer);
+                        const isCorrect = studentAns === correctAns || (q.type === 'trueFalse' && studentAns === correctAns);
+                        
+                        const answerDiv = document.createElement('div');
+                        answerDiv.className = `answer ${isCorrect ? 'correct' : 'incorrect'}`;
+                        answerDiv.innerHTML = `<p><strong>Antwort:</strong> ${studentAns || 'Nicht beantwortet'}</p>`;
+                        if (!isCorrect) {
+                            answerDiv.innerHTML += `<p><strong>Richtige Antwort:</strong> ${correctAns}</p>`;
+                        }
+                        questionBlock.appendChild(answerDiv);
+                        subDiv.appendChild(questionBlock);
+                    });
                 }
-            };
-            reader.readAsText(file);
-        });
-    </script>
+                assignmentDiv.appendChild(subDiv);
+            }
+            container.appendChild(assignmentDiv);
+        }
+    }
+</script>
+</div>
 </body>
 </html>
