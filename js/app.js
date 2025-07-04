@@ -130,9 +130,6 @@ function renderSolution(subAssignmentData, targetContainer = document.getElement
     }
 }
 
-/**
- * Renders the interactive part of a sub-assignment and checks for cached solutions.
- */
 async function renderSubAssignment(subAssignmentData, assignmentId, subId) {
     document.getElementById('sub-title').textContent = subAssignmentData.title;
     document.getElementById('instructions').innerHTML = subAssignmentData.instructions;
@@ -141,7 +138,6 @@ async function renderSubAssignment(subAssignmentData, assignmentId, subId) {
     const contentRenderer = document.getElementById('content-renderer');
     contentRenderer.innerHTML = '';
 
-    // Render the main assignment content
     switch (subAssignmentData.type) {
         case 'quill':
             await renderQuill(subAssignmentData, assignmentId, subId);
@@ -159,26 +155,22 @@ async function renderSubAssignment(subAssignmentData, assignmentId, subId) {
             contentRenderer.innerHTML = '<p>Error: Unknown assignment type.</p>';
     }
 
-    // Render the solution importer UI
     renderSolutionImporter(assignmentId, subId);
     
-    // **NEW**: Check for and display a cached solution from sessionStorage
+    // **FIX**: Check for and display a cached solution from localStorage
     const cachedSolutionKey = `solution-cache_${assignmentId}_${subId}`;
-    const cachedSolutionDataString = sessionStorage.getItem(cachedSolutionKey);
+    const cachedSolutionDataString = localStorage.getItem(cachedSolutionKey);
     if (cachedSolutionDataString) {
         try {
             const cachedSolutionData = JSON.parse(cachedSolutionDataString);
             displayImportedSolution(cachedSolutionData);
         } catch(e) {
             console.error("Could not parse cached solution data:", e);
-            sessionStorage.removeItem(cachedSolutionKey); // Clear corrupted data
+            localStorage.removeItem(cachedSolutionKey); // Clear corrupted data
         }
     }
 }
 
-/**
- * Creates the UI for the "Import Solution" feature.
- */
 function renderSolutionImporter(assignmentId, subId) {
     const container = document.getElementById('solution-import-container');
     container.innerHTML = ''; 
@@ -200,9 +192,6 @@ function renderSolutionImporter(assignmentId, subId) {
     container.appendChild(fileInput);
 }
 
-/**
- * Handles file selection, validation, caching, and triggers the display of the solution.
- */
 function handleSolutionFileSelect(event, assignmentId, subId) {
     const file = event.target.files[0];
     if (!file) return;
@@ -220,9 +209,9 @@ function handleSolutionFileSelect(event, assignmentId, subId) {
 
             const solutionSubAssignmentData = importedData.subAssignments[subId];
 
-            // **NEW**: Cache the valid solution data in sessionStorage
+            // **FIX**: Cache the valid solution data in localStorage
             const storageKey = `solution-cache_${assignmentId}_${subId}`;
-            sessionStorage.setItem(storageKey, JSON.stringify(solutionSubAssignmentData));
+            localStorage.setItem(storageKey, JSON.stringify(solutionSubAssignmentData));
 
             displayImportedSolution(solutionSubAssignmentData);
 
@@ -231,27 +220,21 @@ function handleSolutionFileSelect(event, assignmentId, subId) {
         }
     };
     reader.readAsText(file);
-    event.target.value = ''; // Reset file input
+    event.target.value = '';
 }
 
-/**
- * Renders the solution from a validated file into its dedicated container.
- */
 function displayImportedSolution(solutionSubAssignmentData) {
     const solutionContainer = document.getElementById('solution-display-container');
-    solutionContainer.style.display = 'block'; // Make it visible
+    solutionContainer.style.display = 'block';
 
     const title = document.createElement('h3');
     title.textContent = `Importierte Lösung für: ${solutionSubAssignmentData.title}`;
     
-    // Clear container and add new title
     solutionContainer.innerHTML = ''; 
     solutionContainer.appendChild(title);
     
     renderSolution(solutionSubAssignmentData, solutionContainer);
 }
-
-// ... (The rest of the functions: renderQuill, renderMultipleChoice, etc., remain unchanged) ...
 
 async function renderQuill(data, assignmentId, subId) {
     const contentRenderer = document.getElementById('content-renderer');
