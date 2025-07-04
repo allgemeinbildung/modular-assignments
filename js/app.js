@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const assignmentId = urlParams.get('assignmentId');
     const subId = urlParams.get('subId');
-    const viewMode = urlParams.get('view'); 
+    const viewMode = urlParams.get('view'); // Check for the solution view parameter
 
     if (!assignmentId || !subId) {
         document.getElementById('main-title').textContent = 'Fehler';
@@ -11,9 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Event Listener für den Submit-Button hinzufügen
+    // Event Listener for the Submit-Button hinzufügen (nur wenn nicht im Lösungsmodus)
     const submitButton = document.getElementById('submit-all');
-    if (submitButton) {
+    if (submitButton && viewMode !== 'solution') {
         submitButton.addEventListener('click', () => {
             const allData = gatherAllAssignmentsData();
             submitAssignment(allData);
@@ -38,8 +38,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error(`Teilaufgabe mit der ID "${subId}" in der JSON-Datei nicht gefunden.`);
             }
             
-            // 3. Master-Renderer aufrufen
-            renderSubAssignment(subAssignmentData, assignmentId, subId);
+            // ROUTING: Decide whether to show the assignment or the solution
+            if (viewMode === 'solution') {
+                renderSolution(subAssignmentData);
+            } else {
+                renderSubAssignment(subAssignmentData, assignmentId, subId);
+            }
         })
         .catch(error => {
             console.error('Fehler beim Laden der Aufgabe:', error);
@@ -47,6 +51,67 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('content-renderer').innerHTML = `<p>Ein Fehler ist aufgetreten. Bitte überprüfen Sie die Browser-Konsole für weitere Details.</p><p>Fehlermeldung: ${error.message}</p>`;
         });
 });
+
+/**
+ * NEW: Renders the solution for a given sub-assignment.
+ * @param {object} subAssignmentData The data object for the sub-assignment.
+ */
+function renderSolution(subAssignmentData) {
+    document.getElementById('sub-title').textContent = `Lösung: ${subAssignmentData.title}`;
+    document.getElementById('instructions').innerHTML = subAssignmentData.instructions;
+    document.getElementById('action-container').style.display = 'none'; // Hide submit button
+
+    const contentRenderer = document.getElementById('content-renderer');
+    contentRenderer.innerHTML = ''; 
+
+    switch (subAssignmentData.type) {
+        case 'quill':
+            // For Quill, render the HTML solution content if it exists [cite: 153, 154]
+            if (subAssignmentData.solution && subAssignmentData.solution.type === 'html') {
+                contentRenderer.innerHTML = subAssignmentData.solution.content;
+            } else {
+                contentRenderer.innerHTML = '<p>Für diese Aufgabe ist keine Lösung im HTML-Format verfügbar.</p>';
+            }
+            break;
+        
+        case 'multipleChoice':
+            // For quizzes, render the questions with the correct answer highlighted [cite: 155]
+            const quizForm = document.createElement('form');
+            quizForm.id = 'quiz-form-solution';
+
+            subAssignmentData.questions.forEach((questionData, index) => {
+                const questionContainer = document.createElement('div');
+                questionContainer.className = 'quiz-question-container';
+
+                const questionText = document.createElement('p');
+                questionText.innerHTML = `<strong>Frage ${index + 1}:</strong> ${questionData.question}`;
+                questionContainer.appendChild(questionText);
+
+                questionData.options.forEach(option => {
+                    const optionWrapper = document.createElement('div');
+                    const label = document.createElement('label');
+                    label.textContent = option.text;
+
+                    // Highlight the correct answer
+                    if (option.is_correct) {
+                        label.style.fontWeight = 'bold';
+                        label.style.color = 'green';
+                        label.innerHTML += " (Richtige Antwort)";
+                    }
+                    
+                    optionWrapper.appendChild(label);
+                    questionContainer.appendChild(optionWrapper);
+                });
+                quizForm.appendChild(questionContainer);
+            });
+            contentRenderer.appendChild(quizForm);
+            break;
+            
+        default:
+            contentRenderer.innerHTML = '<p>Unbekannter Lösungstyp.</p>';
+    }
+}
+
 
 /**
  * Master-Renderer: Leitet die Daten basierend auf dem Typ an die spezifische Render-Funktion weiter.
@@ -57,6 +122,8 @@ document.addEventListener('DOMContentLoaded', () => {
 function renderSubAssignment(subAssignmentData, assignmentId, subId) {
     document.getElementById('sub-title').textContent = subAssignmentData.title;
     document.getElementById('instructions').innerHTML = subAssignmentData.instructions;
+    document.getElementById('action-container').style.display = 'block'; // Ensure submit button is visible
+
     const contentRenderer = document.getElementById('content-renderer');
     contentRenderer.innerHTML = '';
 
@@ -80,7 +147,7 @@ function renderSubAssignment(subAssignmentData, assignmentId, subId) {
  */
 function renderQuill(data, assignmentId, subId) {
     const contentRenderer = document.getElementById('content-renderer');
-    const storageKey = `textbox-assignment_${assignmentId}_textbox-sub_${subId}`; // [cite: 133]
+    const storageKey = `textbox-assignment_${assignmentId}_textbox-sub_${subId}`;
 
     const questionsList = document.createElement('ol');
     data.questions.forEach(q => {
@@ -101,13 +168,13 @@ function renderQuill(data, assignmentId, subId) {
         }
     });
     
-    // Gespeicherte Daten laden [cite: 135]
+    // Gespeicherte Daten laden
     const savedData = localStorage.getItem(storageKey);
     if (savedData) {
         quill.setContents(JSON.parse(savedData));
     }
 
-    // Änderungen im Editor speichern [cite: 134]
+    // Änderungen im Editor speichern
     quill.on('text-change', () => {
         localStorage.setItem(storageKey, JSON.stringify(quill.getContents()));
     });
@@ -146,7 +213,6 @@ function renderMultipleChoice(data, assignmentId, subId) {
             radioInput.value = option.text;
             radioInput.id = optionId;
             
-            // Gespeicherte Antwort wiederherstellen [cite: 137]
             if (savedAnswer === option.text) {
                 radioInput.checked = true;
             }
@@ -165,7 +231,6 @@ function renderMultipleChoice(data, assignmentId, subId) {
         feedbackElement.className = 'feedback';
         questionContainer.appendChild(feedbackElement);
         
-        // Initiales Feedback für vorgewählte Antworten anzeigen
         if (savedAnswer) {
             const selectedOption = questionData.options.find(o => o.text === savedAnswer);
             if (selectedOption) {
@@ -173,7 +238,6 @@ function renderMultipleChoice(data, assignmentId, subId) {
                 feedbackElement.className = `feedback ${selectedOption.is_correct ? 'correct' : 'incorrect'}`;
             }
         }
-
         quizForm.appendChild(questionContainer);
     });
 
@@ -185,7 +249,6 @@ function renderMultipleChoice(data, assignmentId, subId) {
             const selectedValue = event.target.value;
             const storageKey = `quiz-assignment_${assignmentId}_sub_${subId}_question_${questionId}`;
             
-            // Antwort speichern und Feedback geben [cite: 136]
             localStorage.setItem(storageKey, selectedValue);
 
             const questionData = data.questions.find(q => q.id === questionId);
@@ -210,7 +273,6 @@ function gatherAllAssignmentsData() {
 
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        // Schlüssel für Quill-Antworten und Quiz-Antworten scannen
         if (key.startsWith('textbox-assignment_') || key.startsWith('quiz-assignment_')) {
             studentData.assignments[key] = localStorage.getItem(key);
         }
