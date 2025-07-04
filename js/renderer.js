@@ -33,14 +33,12 @@ function renderQuizSolution(questions, targetContainer) {
                     questionContainer.appendChild(label);
                 });
                 break;
-
             case 'trueFalse':
                 const correctAnswer = questionData.is_correct ? 'Wahr' : 'Falsch';
                 const answerText = document.createElement('p');
                 answerText.innerHTML = `Richtige Antwort: <strong><span style="color: green;">${correctAnswer}</span></strong>`;
                 questionContainer.appendChild(answerText);
                 break;
-
             case 'dragTheWords':
                 let solvedContent = questionData.content;
                 questionData.solution.forEach(word => {
@@ -66,10 +64,8 @@ export function renderSolution(subAssignmentData, targetContainer = document.get
     document.getElementById('action-container').style.display = 'none';
     document.getElementById('solution-import-container').style.display = 'none';
 
-    // Populate common header elements
     document.getElementById('sub-title').textContent = subAssignmentData.title;
     document.getElementById('instructions').innerHTML = subAssignmentData.instructions;
-
 
     switch (subAssignmentData.type) {
         case 'quill':
@@ -103,12 +99,6 @@ export function renderSolution(subAssignmentData, targetContainer = document.get
 //                                INTERACTIVE RENDERERS
 // ===================================================================================
 
-/**
- * Renders a Quill rich text editor with attachment functionality.
- * @param {object} data - The sub-assignment data for the Quill task.
- * @param {string} assignmentId - The main assignment ID.
- * @param {string} subId - The sub-assignment ID.
- */
 async function renderQuill(data, assignmentId, subId) {
     const contentRenderer = document.getElementById('content-renderer');
     const storageKey = `textbox-assignment_${assignmentId}_textbox-sub_${subId}`;
@@ -192,128 +182,229 @@ async function renderQuill(data, assignmentId, subId) {
 }
 
 /**
- * Renders a single multiple-choice question.
- * @param {HTMLElement} container - The parent element for this question.
- * @param {object} questionData - The data for this specific question.
- * @param {string} assignmentId - The main assignment ID.
- * @param {string} subId - The sub-assignment ID.
- * @param {number} index - The question number.
+ * NEW: Renders a stateful, one-question-at-a-time quiz experience.
  */
-function renderSingleMultipleChoice(container, questionData, assignmentId, subId, index) {
-    const storageKey = `quiz-assignment_${assignmentId}_sub_${subId}_question_${questionData.id}`;
-    const savedAnswer = localStorage.getItem(storageKey);
+function renderQuiz(data, assignmentId, subId) {
+    const { questions } = data;
+    let currentIndex = 0;
+    let userAnswers = {};
 
+    const contentRenderer = document.getElementById('content-renderer');
+    contentRenderer.innerHTML = '';
+
+    // Create the main quiz frame
+    const quizFrame = document.createElement('div');
+    quizFrame.className = 'quiz-frame';
+
+    // Create header with progress indicator
+    const quizHeader = document.createElement('div');
+    quizHeader.className = 'quiz-header';
+    const progressIndicator = document.createElement('span');
+    progressIndicator.className = 'quiz-progress';
+    quizHeader.appendChild(progressIndicator);
+    
+    // Create the container where the question content will be injected
+    const questionDisplay = document.createElement('div');
+    questionDisplay.className = 'quiz-question-display';
+
+    // Create navigation buttons
+    const navigation = document.createElement('div');
+    navigation.className = 'quiz-navigation';
+    const prevButton = document.createElement('button');
+    prevButton.textContent = 'Zurück';
+    prevButton.className = 'quiz-nav-btn secondary';
+    const nextButton = document.createElement('button');
+    nextButton.className = 'quiz-nav-btn';
+    
+    quizFrame.append(quizHeader, questionDisplay, navigation);
+    navigation.append(prevButton, nextButton);
+    contentRenderer.appendChild(quizFrame);
+
+    // --- Core Quiz Logic ---
+
+    const displayCurrentQuestion = () => {
+        const questionData = questions[currentIndex];
+        questionDisplay.innerHTML = '';
+
+        // Render the appropriate question type into the display area
+        switch (questionData.type) {
+            case 'multipleChoice':
+                renderSingleMultipleChoice(questionDisplay, questionData, userAnswers);
+                break;
+            case 'trueFalse':
+                renderSingleTrueFalse(questionDisplay, questionData, userAnswers);
+                break;
+            case 'dragTheWords':
+                renderSingleDragTheWords(questionDisplay, questionData);
+                break;
+        }
+
+        // Update progress and button states
+        progressIndicator.textContent = `Frage ${currentIndex + 1} von ${questions.length}`;
+        prevButton.disabled = currentIndex === 0;
+        if (currentIndex === questions.length - 1) {
+            nextButton.textContent = 'Quiz beenden';
+        } else {
+            nextButton.textContent = 'Weiter';
+        }
+    };
+    
+    const showResults = () => {
+        let score = 0;
+        questions.forEach(q => {
+            const userAnswer = userAnswers[q.id];
+            let isCorrect = false;
+            if (q.type === 'multipleChoice') {
+                const correctOption = q.options.find(opt => opt.is_correct);
+                isCorrect = correctOption && correctOption.text === userAnswer;
+            } else if (q.type === 'trueFalse') {
+                isCorrect = String(q.is_correct) === userAnswer;
+            }
+            if (isCorrect) score++;
+        });
+
+        contentRenderer.innerHTML = '';
+        const resultsContainer = document.createElement('div');
+        resultsContainer.className = 'quiz-results-container';
+        resultsContainer.innerHTML = `<h2>Quiz abgeschlossen</h2><p class="result-summary">Dein Ergebnis: ${score} / ${questions.length}</p>`;
+        
+        questions.forEach(q => {
+            const userAnswer = userAnswers[q.id];
+            const resultDiv = document.createElement('div');
+            resultDiv.className = 'result-question';
+            
+            let isCorrect = false;
+            let correctAnswerText = '';
+            
+            if (q.type === 'multipleChoice') {
+                const correctOption = q.options.find(opt => opt.is_correct);
+                correctAnswerText = correctOption.text;
+                isCorrect = correctAnswerText === userAnswer;
+            } else if (q.type === 'trueFalse') {
+                correctAnswerText = q.is_correct ? 'Wahr' : 'Falsch';
+                const userAnswerText = userAnswer === 'true' ? 'Wahr' : 'Falsch';
+                isCorrect = String(q.is_correct) === userAnswer;
+            }
+
+            resultDiv.innerHTML = `<p><strong>${q.question}</strong></p>`;
+            if (userAnswer !== undefined) {
+                 const answerClass = isCorrect ? 'correct' : 'incorrect';
+                 const icon = isCorrect ? '✔' : '❌';
+                 resultDiv.innerHTML += `<p class="user-answer ${answerClass}">${icon} Deine Antwort: ${userAnswer}</p>`;
+                 if(!isCorrect) {
+                     resultDiv.innerHTML += `<p class="correct-answer-display">Richtige Antwort: ${correctAnswerText}</p>`;
+                 }
+            } else {
+                resultDiv.innerHTML += `<p class="user-answer incorrect">❌ Keine Antwort gegeben.</p><p class="correct-answer-display">Richtige Antwort: ${correctAnswerText}</p>`;
+            }
+
+            resultsContainer.appendChild(resultDiv);
+        });
+
+        contentRenderer.appendChild(resultsContainer);
+    };
+
+    // --- Event Listeners ---
+
+    questionDisplay.addEventListener('change', (event) => {
+        const questionId = event.target.name;
+        const selectedValue = event.target.value;
+        userAnswers[questionId] = selectedValue;
+        // Also save to localStorage for persistence
+        const storageKey = `${questions.find(q=>q.id === questionId).type === 'trueFalse' ? 'tf' : 'quiz'}-assignment_${assignmentId}_sub_${subId}_question_${questionId}`;
+        localStorage.setItem(storageKey, selectedValue);
+    });
+    
+    nextButton.addEventListener('click', () => {
+        if (currentIndex < questions.length - 1) {
+            currentIndex++;
+            displayCurrentQuestion();
+        } else {
+            showResults();
+        }
+    });
+
+    prevButton.addEventListener('click', () => {
+        if (currentIndex > 0) {
+            currentIndex--;
+            displayCurrentQuestion();
+        }
+    });
+
+    // --- Initial Load ---
+    
+    // Pre-load answers from localStorage
+    questions.forEach(q => {
+        const storageKey = `${q.type === 'trueFalse' ? 'tf' : 'quiz'}-assignment_${assignmentId}_sub_${subId}_question_${q.id}`;
+        const savedAnswer = localStorage.getItem(storageKey);
+        if (savedAnswer) {
+            userAnswers[q.id] = savedAnswer;
+        }
+    });
+
+    displayCurrentQuestion();
+}
+
+/**
+ * Renders a single MC question for the one-at-a-time quiz.
+ */
+function renderSingleMultipleChoice(container, questionData, userAnswers) {
     const questionText = document.createElement('p');
-    questionText.innerHTML = `<strong>Frage ${index + 1}:</strong> ${questionData.question}`;
+    questionText.innerHTML = `<strong>${questionData.question}</strong>`;
     container.appendChild(questionText);
 
     questionData.options.forEach(option => {
         const optionId = `${questionData.id}-${option.text.replace(/\s+/g, '-')}`;
-        const optionWrapper = document.createElement('div');
-        optionWrapper.className = 'option-wrapper';
-        const radioInput = document.createElement('input');
-        radioInput.type = 'radio';
-        radioInput.name = questionData.id;
-        radioInput.value = option.text;
-        radioInput.id = optionId;
-        if (savedAnswer === option.text) radioInput.checked = true;
+        const wrapper = document.createElement('div');
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = questionData.id;
+        radio.value = option.text;
+        radio.id = optionId;
+        if (userAnswers[questionData.id] === option.text) {
+            radio.checked = true;
+        }
         const label = document.createElement('label');
         label.htmlFor = optionId;
         label.textContent = option.text;
-        optionWrapper.append(radioInput, label);
-        container.appendChild(optionWrapper);
+        wrapper.append(radio, label);
+        container.appendChild(wrapper);
     });
-
-    const feedbackElement = document.createElement('div');
-    feedbackElement.id = `feedback-${questionData.id}`;
-    feedbackElement.className = 'feedback';
-    container.appendChild(feedbackElement);
-
-    const showFeedback = (selectedValue) => {
-        const selectedOption = questionData.options.find(o => o.text === selectedValue);
-        if (selectedOption) {
-            feedbackElement.textContent = selectedOption.feedback;
-            feedbackElement.className = `feedback ${selectedOption.is_correct ? 'correct' : 'incorrect'}`;
-        }
-    };
-    
-    container.addEventListener('change', (event) => {
-        if (event.target.type === 'radio' && event.target.name === questionData.id) {
-            const selectedValue = event.target.value;
-            localStorage.setItem(storageKey, selectedValue);
-            showFeedback(selectedValue);
-        }
-    });
-
-    if (savedAnswer) {
-        showFeedback(savedAnswer);
-    }
 }
 
 /**
- * Renders a single true/false question.
- * @param {HTMLElement} container - The parent element for this question.
- * @param {object} questionData - The data for this specific question.
- * @param {string} assignmentId - The main assignment ID.
- * @param {string} subId - The sub-assignment ID.
- * @param {number} index - The question number.
+ * Renders a single TF question for the one-at-a-time quiz.
  */
-function renderSingleTrueFalse(container, questionData, assignmentId, subId, index) {
-    const storageKey = `tf-assignment_${assignmentId}_sub_${subId}_question_${questionData.id}`;
-    const savedAnswer = localStorage.getItem(storageKey);
-
+function renderSingleTrueFalse(container, questionData, userAnswers) {
     const questionText = document.createElement('p');
-    questionText.innerHTML = `<strong>Frage ${index + 1}:</strong> ${questionData.question}`;
+    questionText.innerHTML = `<strong>${questionData.question}</strong>`;
     container.appendChild(questionText);
-    
-    const feedbackElement = document.createElement('div');
-    feedbackElement.className = 'feedback';
-    
+
     ['true', 'false'].forEach(value => {
         const optionId = `${questionData.id}-${value}`;
-        const radioInput = document.createElement('input');
-        radioInput.type = 'radio';
-        radioInput.name = questionData.id;
-        radioInput.value = value;
-        radioInput.id = optionId;
-        if (savedAnswer === value) radioInput.checked = true;
+        const wrapper = document.createElement('div');
+        const radio = document.createElement('input');
+        radio.type = 'radio';
+        radio.name = questionData.id;
+        radio.value = value;
+        radio.id = optionId;
+        if (userAnswers[questionData.id] === value) {
+            radio.checked = true;
+        }
         const label = document.createElement('label');
         label.htmlFor = optionId;
         label.textContent = value === 'true' ? 'Wahr' : 'Falsch';
-        label.style.marginRight = '15px';
-        container.append(radioInput, label);
+        wrapper.append(radio, label);
+        container.appendChild(wrapper);
     });
-    
-    container.appendChild(feedbackElement);
-
-    const showFeedback = (selectedValue) => {
-        const isCorrect = (String(questionData.is_correct) === selectedValue);
-        feedbackElement.textContent = selectedValue === 'true' ? questionData.feedback_true : questionData.feedback_false;
-        feedbackElement.className = `feedback ${isCorrect ? 'correct' : 'incorrect'}`;
-    };
-
-    container.addEventListener('change', (event) => {
-        if (event.target.type === 'radio' && event.target.name === questionData.id) {
-            const selectedValue = event.target.value;
-            localStorage.setItem(storageKey, selectedValue);
-            showFeedback(selectedValue);
-        }
-    });
-    
-    if (savedAnswer) {
-        showFeedback(savedAnswer);
-    }
 }
 
 /**
- * Renders a single drag-the-words question. Note: Full drag-drop UI is complex and not implemented.
- * @param {HTMLElement} container - The parent element for this question.
- * @param {object} questionData - The data for this specific question.
- * @param {number} index - The question number.
+ * Renders a single Drag-the-words question.
  */
-function renderSingleDragTheWords(container, questionData, index) {
+function renderSingleDragTheWords(container, questionData) {
     const questionText = document.createElement('p');
-    questionText.innerHTML = `<strong>Frage ${index + 1}:</strong> ${questionData.question}`;
+    questionText.innerHTML = `<strong>${questionData.question}</strong>`;
     container.appendChild(questionText);
 
     const sentenceP = document.createElement('p');
@@ -323,7 +414,6 @@ function renderSingleDragTheWords(container, questionData, index) {
 
     const wordBank = document.createElement('div');
     wordBank.className = 'word-bank';
-    wordBank.innerHTML = '<strong>Wort-Bank:</strong> ';
     questionData.words.forEach(word => {
         const wordSpan = document.createElement('span');
         wordSpan.className = 'draggable-word';
@@ -331,45 +421,7 @@ function renderSingleDragTheWords(container, questionData, index) {
         wordBank.appendChild(wordSpan);
     });
     container.appendChild(wordBank);
-    
-    const info = document.createElement('p');
-    info.innerHTML = '<em>Hinweis: Die volle Drag-and-Drop-Funktionalität ist in dieser Ansicht nicht implementiert.</em>';
-    container.appendChild(info);
-}
-
-/**
- * Renders a unified quiz containing multiple question types.
- * @param {object} data - The sub-assignment data for the quiz.
- * @param {string} assignmentId - The main assignment ID.
- * @param {string} subId - The sub-assignment ID.
- */
-function renderQuiz(data, assignmentId, subId) {
-    const contentRenderer = document.getElementById('content-renderer');
-    const quizForm = document.createElement('form');
-    quizForm.id = 'quiz-form';
-    quizForm.onsubmit = (e) => e.preventDefault(); 
-
-    data.questions.forEach((questionData, index) => {
-        const questionWrapper = document.createElement('div');
-        questionWrapper.className = 'question-wrapper';
-        questionWrapper.style.cssText = 'margin-bottom: 2em; border-bottom: 1px solid #eee; padding-bottom: 1.5em;';
-
-        switch (questionData.type) {
-            case 'multipleChoice':
-                renderSingleMultipleChoice(questionWrapper, questionData, assignmentId, subId, index);
-                break;
-            case 'trueFalse':
-                renderSingleTrueFalse(questionWrapper, questionData, assignmentId, subId, index);
-                break;
-            case 'dragTheWords':
-                renderSingleDragTheWords(questionWrapper, questionData, index);
-                break;
-            default:
-                questionWrapper.innerHTML = `<p>Error: Unknown question type: ${questionData.type}</p>`;
-        }
-        quizForm.appendChild(questionWrapper);
-    });
-    contentRenderer.appendChild(quizForm);
+    container.innerHTML += '<p><em>Drag & Drop ist in diesem Modus nicht interaktiv. Beantworte diese Frage gedanklich.</em></p>';
 }
 
 
@@ -377,14 +429,7 @@ function renderQuiz(data, assignmentId, subId) {
 //                                MASTER RENDERER & IMPORTER
 // ===================================================================================
 
-/**
- * Main function to render any sub-assignment based on its type.
- * @param {object} subAssignmentData - The data object for the sub-assignment.
- * @param {string} assignmentId - The main assignment ID.
- * @param {string} subId - The sub-assignment ID.
- */
 export async function renderSubAssignment(subAssignmentData, assignmentId, subId) {
-    // Populate common header elements
     document.getElementById('sub-title').textContent = subAssignmentData.title;
     document.getElementById('instructions').innerHTML = subAssignmentData.instructions;
     document.getElementById('action-container').style.display = 'block';
@@ -392,7 +437,6 @@ export async function renderSubAssignment(subAssignmentData, assignmentId, subId
     const contentRenderer = document.getElementById('content-renderer');
     contentRenderer.innerHTML = '';
 
-    // Route to the correct renderer based on the sub-assignment's type
     switch (subAssignmentData.type) {
         case 'quill':
             await renderQuill(subAssignmentData, assignmentId, subId);
@@ -404,10 +448,8 @@ export async function renderSubAssignment(subAssignmentData, assignmentId, subId
             contentRenderer.innerHTML = '<p>Error: Unknown assignment type.</p>';
     }
 
-    // Initialize the solution importer UI
     renderSolutionImporter(assignmentId, subId);
     
-    // Check for and display any previously imported/cached solutions
     const cachedSolutionKey = `solution-cache_${assignmentId}_${subId}`;
     const cachedSolutionDataString = localStorage.getItem(cachedSolutionKey);
     if (cachedSolutionDataString) {
@@ -421,11 +463,6 @@ export async function renderSubAssignment(subAssignmentData, assignmentId, subId
     }
 }
 
-/**
- * Sets up the UI for importing a solution file.
- * @param {string} assignmentId - The main assignment ID.
- * @param {string} subId - The sub-assignment ID.
- */
 function renderSolutionImporter(assignmentId, subId) {
     const container = document.getElementById('solution-import-container');
     container.innerHTML = ''; 
@@ -446,12 +483,6 @@ function renderSolutionImporter(assignmentId, subId) {
     container.appendChild(fileInput);
 }
 
-/**
- * Handles the reading and processing of a selected solution file.
- * @param {Event} event - The file input change event.
- * @param {string} assignmentId - The main assignment ID.
- * @param {string} subId - The sub-assignment ID.
- */
 function handleSolutionFileSelect(event, assignmentId, subId) {
     const file = event.target.files[0];
     if (!file) return;
@@ -463,7 +494,7 @@ function handleSolutionFileSelect(event, assignmentId, subId) {
             const expectedTitle = document.getElementById('main-title').textContent;
 
             if (importedData.assignmentTitle !== expectedTitle || !importedData.subAssignments[subId]) {
-                alert('Fehler: Diese Lösungsdatei passt nicht zur aktuellen Aufgabe. Bitte die korrekte JSON-Datei auswählen.');
+                alert('Fehler: Diese Lösungsdatei passt nicht zur aktuellen Aufgabe...');
                 return;
             }
 
@@ -476,13 +507,9 @@ function handleSolutionFileSelect(event, assignmentId, subId) {
         }
     };
     reader.readAsText(file);
-    event.target.value = ''; // Reset file input
+    event.target.value = '';
 }
 
-/**
- * Displays an imported solution in a dedicated container.
- * @param {object} solutionSubAssignmentData - The sub-assignment data for the solution.
- */
 function displayImportedSolution(solutionSubAssignmentData) {
     const solutionContainer = document.getElementById('solution-display-container');
     solutionContainer.style.display = 'block';
@@ -492,6 +519,5 @@ function displayImportedSolution(solutionSubAssignmentData) {
     solutionContainer.innerHTML = ''; 
     solutionContainer.appendChild(title);
     
-    // Use the main solution renderer to display the content
     renderSolution(solutionSubAssignmentData, solutionContainer);
 }

@@ -1,3 +1,119 @@
+/* General Quiz Styles */
+.feedback {
+    margin-top: 10px;
+    padding: 8px;
+    border-radius: 4px;
+    font-style: italic;
+}
+.feedback.correct {
+    background-color: #e9f7ef;
+    color: #155724;
+}
+.feedback.incorrect {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* NEW: Framed Quiz Container */
+.quiz-frame {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 24px;
+    background-color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.quiz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.quiz-progress {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #6c757d;
+    background-color: #f8f9fa;
+    padding: 5px 10px;
+    border-radius: 20px;
+}
+
+.quiz-question-display {
+    min-height: 150px;
+    margin-bottom: 20px;
+}
+
+.quiz-navigation {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+}
+
+.quiz-nav-btn {
+    font-size: 1em;
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: 1px solid #007bff;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    transition: background-color 0.2s, color 0.2s;
+}
+.quiz-nav-btn:hover {
+    background-color: #0056b3;
+}
+.quiz-nav-btn.secondary {
+    background-color: transparent;
+    color: #007bff;
+}
+.quiz-nav-btn.secondary:hover {
+    background-color: #e7f3ff;
+}
+.quiz-nav-btn:disabled {
+    background-color: #ced4da;
+    border-color: #ced4da;
+    cursor: not-allowed;
+}
+
+/* NEW: Quiz Results Screen */
+.quiz-results-container {
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+}
+.quiz-results-container h2 {
+    color: #003f5c;
+    text-align: center;
+}
+.result-summary {
+    text-align: center;
+    font-size: 1.5em;
+    font-weight: bold;
+    margin: 20px 0;
+}
+.result-question {
+    border-bottom: 1px solid #e9ecef;
+    padding: 15px 0;
+}
+.result-question p {
+    margin: 5px 0;
+}
+.user-answer.correct {
+    color: #28a745;
+}
+.user-answer.incorrect {
+    color: #dc3545;
+}
+.correct-answer-display {
+    color: #198754;
+    font-style: italic;
+}
+
+
 /* Drag and Drop Styles */
 .word-bank {
     margin-top: 20px;
