@@ -4,11 +4,6 @@ import { getFilesForAssignment, addFile, deleteFile } from './db.js';
 //                                  SOLUTION RENDERER
 // ===================================================================================
 
-/**
- * Renders the solutions for a unified 'quiz' assignment type.
- * @param {Array<object>} questions - The array of question objects from the sub-assignment.
- * @param {HTMLElement} targetContainer - The container element to render the solutions into.
- */
 function renderQuizSolution(questions, targetContainer) {
     questions.forEach((questionData, index) => {
         const questionContainer = document.createElement('div');
@@ -54,11 +49,6 @@ function renderQuizSolution(questions, targetContainer) {
     });
 }
 
-/**
- * Renders the solution view for a given sub-assignment.
- * @param {object} subAssignmentData - The data object for the sub-assignment.
- * @param {HTMLElement} [targetContainer=document.getElementById('content-renderer')] - The element to render into.
- */
 export function renderSolution(subAssignmentData, targetContainer = document.getElementById('content-renderer')) {
     targetContainer.innerHTML = '';
     document.getElementById('action-container').style.display = 'none';
@@ -181,9 +171,6 @@ async function renderQuill(data, assignmentId, subId) {
     });
 }
 
-/**
- * NEW: Renders a stateful, one-question-at-a-time quiz experience.
- */
 function renderQuiz(data, assignmentId, subId) {
     const { questions } = data;
     let currentIndex = 0;
@@ -192,22 +179,15 @@ function renderQuiz(data, assignmentId, subId) {
     const contentRenderer = document.getElementById('content-renderer');
     contentRenderer.innerHTML = '';
 
-    // Create the main quiz frame
     const quizFrame = document.createElement('div');
     quizFrame.className = 'quiz-frame';
-
-    // Create header with progress indicator
     const quizHeader = document.createElement('div');
     quizHeader.className = 'quiz-header';
     const progressIndicator = document.createElement('span');
     progressIndicator.className = 'quiz-progress';
     quizHeader.appendChild(progressIndicator);
-    
-    // Create the container where the question content will be injected
     const questionDisplay = document.createElement('div');
     questionDisplay.className = 'quiz-question-display';
-
-    // Create navigation buttons
     const navigation = document.createElement('div');
     navigation.className = 'quiz-navigation';
     const prevButton = document.createElement('button');
@@ -220,13 +200,10 @@ function renderQuiz(data, assignmentId, subId) {
     navigation.append(prevButton, nextButton);
     contentRenderer.appendChild(quizFrame);
 
-    // --- Core Quiz Logic ---
-
     const displayCurrentQuestion = () => {
         const questionData = questions[currentIndex];
         questionDisplay.innerHTML = '';
 
-        // Render the appropriate question type into the display area
         switch (questionData.type) {
             case 'multipleChoice':
                 renderSingleMultipleChoice(questionDisplay, questionData, userAnswers);
@@ -235,18 +212,17 @@ function renderQuiz(data, assignmentId, subId) {
                 renderSingleTrueFalse(questionDisplay, questionData, userAnswers);
                 break;
             case 'dragTheWords':
-                renderSingleDragTheWords(questionDisplay, questionData);
+                renderSingleDragTheWords(questionDisplay, questionData, userAnswers, (answers) => {
+                    userAnswers[questionData.id] = answers;
+                    const storageKey = `drag-assignment_${assignmentId}_sub_${subId}_question_${questionData.id}`;
+                    localStorage.setItem(storageKey, JSON.stringify(answers));
+                });
                 break;
         }
 
-        // Update progress and button states
         progressIndicator.textContent = `Frage ${currentIndex + 1} von ${questions.length}`;
         prevButton.disabled = currentIndex === 0;
-        if (currentIndex === questions.length - 1) {
-            nextButton.textContent = 'Quiz beenden';
-        } else {
-            nextButton.textContent = 'Weiter';
-        }
+        nextButton.textContent = (currentIndex === questions.length - 1) ? 'Quiz beenden' : 'Weiter';
     };
     
     const showResults = () => {
@@ -254,11 +230,14 @@ function renderQuiz(data, assignmentId, subId) {
         questions.forEach(q => {
             const userAnswer = userAnswers[q.id];
             let isCorrect = false;
+
             if (q.type === 'multipleChoice') {
                 const correctOption = q.options.find(opt => opt.is_correct);
                 isCorrect = correctOption && correctOption.text === userAnswer;
             } else if (q.type === 'trueFalse') {
                 isCorrect = String(q.is_correct) === userAnswer;
+            } else if (q.type === 'dragTheWords') {
+                isCorrect = JSON.stringify(q.solution) === JSON.stringify(userAnswer);
             }
             if (isCorrect) score++;
         });
@@ -275,53 +254,50 @@ function renderQuiz(data, assignmentId, subId) {
             
             let isCorrect = false;
             let correctAnswerText = '';
-            
+            let userAnswerText = Array.isArray(userAnswer) ? userAnswer.join(', ') : userAnswer;
+
             if (q.type === 'multipleChoice') {
-                const correctOption = q.options.find(opt => opt.is_correct);
-                correctAnswerText = correctOption.text;
-                isCorrect = correctAnswerText === userAnswer;
+                correctAnswerText = q.options.find(opt => opt.is_correct).text;
+                isCorrect = correctAnswerText === userAnswerText;
             } else if (q.type === 'trueFalse') {
                 correctAnswerText = q.is_correct ? 'Wahr' : 'Falsch';
-                const userAnswerText = userAnswer === 'true' ? 'Wahr' : 'Falsch';
+                userAnswerText = userAnswer === 'true' ? 'Wahr' : (userAnswer === 'false' ? 'Falsch' : '');
                 isCorrect = String(q.is_correct) === userAnswer;
+            } else if (q.type === 'dragTheWords') {
+                correctAnswerText = q.solution.join(', ');
+                isCorrect = JSON.stringify(q.solution) === JSON.stringify(userAnswer);
             }
 
             resultDiv.innerHTML = `<p><strong>${q.question}</strong></p>`;
-            if (userAnswer !== undefined) {
+            if (userAnswer !== undefined && userAnswerText) {
                  const answerClass = isCorrect ? 'correct' : 'incorrect';
                  const icon = isCorrect ? '✔' : '❌';
-                 resultDiv.innerHTML += `<p class="user-answer ${answerClass}">${icon} Deine Antwort: ${userAnswer}</p>`;
+                 resultDiv.innerHTML += `<p class="user-answer ${answerClass}">${icon} Deine Antwort: ${userAnswerText}</p>`;
                  if(!isCorrect) {
                      resultDiv.innerHTML += `<p class="correct-answer-display">Richtige Antwort: ${correctAnswerText}</p>`;
                  }
             } else {
                 resultDiv.innerHTML += `<p class="user-answer incorrect">❌ Keine Antwort gegeben.</p><p class="correct-answer-display">Richtige Antwort: ${correctAnswerText}</p>`;
             }
-
             resultsContainer.appendChild(resultDiv);
         });
-
         contentRenderer.appendChild(resultsContainer);
     };
 
-    // --- Event Listeners ---
-
     questionDisplay.addEventListener('change', (event) => {
-        const questionId = event.target.name;
-        const selectedValue = event.target.value;
-        userAnswers[questionId] = selectedValue;
-        // Also save to localStorage for persistence
-        const storageKey = `${questions.find(q=>q.id === questionId).type === 'trueFalse' ? 'tf' : 'quiz'}-assignment_${assignmentId}_sub_${subId}_question_${questionId}`;
-        localStorage.setItem(storageKey, selectedValue);
+        if (event.target.type === 'radio') {
+            const questionId = event.target.name;
+            const selectedValue = event.target.value;
+            userAnswers[questionId] = selectedValue;
+            const qType = questions.find(q => q.id === questionId).type;
+            const prefix = qType === 'trueFalse' ? 'tf' : 'quiz';
+            const storageKey = `${prefix}-assignment_${assignmentId}_sub_${subId}_question_${questionId}`;
+            localStorage.setItem(storageKey, selectedValue);
+        }
     });
     
     nextButton.addEventListener('click', () => {
-        if (currentIndex < questions.length - 1) {
-            currentIndex++;
-            displayCurrentQuestion();
-        } else {
-            showResults();
-        }
+        (currentIndex < questions.length - 1) ? (currentIndex++, displayCurrentQuestion()) : showResults();
     });
 
     prevButton.addEventListener('click', () => {
@@ -331,28 +307,26 @@ function renderQuiz(data, assignmentId, subId) {
         }
     });
 
-    // --- Initial Load ---
-    
-    // Pre-load answers from localStorage
     questions.forEach(q => {
-        const storageKey = `${q.type === 'trueFalse' ? 'tf' : 'quiz'}-assignment_${assignmentId}_sub_${subId}_question_${q.id}`;
+        const prefix = { multipleChoice: 'quiz', trueFalse: 'tf', dragTheWords: 'drag' }[q.type];
+        const storageKey = `${prefix}-assignment_${assignmentId}_sub_${subId}_question_${q.id}`;
         const savedAnswer = localStorage.getItem(storageKey);
         if (savedAnswer) {
-            userAnswers[q.id] = savedAnswer;
+            try {
+                userAnswers[q.id] = JSON.parse(savedAnswer);
+            } catch {
+                userAnswers[q.id] = savedAnswer;
+            }
         }
     });
 
     displayCurrentQuestion();
 }
 
-/**
- * Renders a single MC question for the one-at-a-time quiz.
- */
 function renderSingleMultipleChoice(container, questionData, userAnswers) {
     const questionText = document.createElement('p');
     questionText.innerHTML = `<strong>${questionData.question}</strong>`;
     container.appendChild(questionText);
-
     questionData.options.forEach(option => {
         const optionId = `${questionData.id}-${option.text.replace(/\s+/g, '-')}`;
         const wrapper = document.createElement('div');
@@ -361,9 +335,7 @@ function renderSingleMultipleChoice(container, questionData, userAnswers) {
         radio.name = questionData.id;
         radio.value = option.text;
         radio.id = optionId;
-        if (userAnswers[questionData.id] === option.text) {
-            radio.checked = true;
-        }
+        if (userAnswers[questionData.id] === option.text) radio.checked = true;
         const label = document.createElement('label');
         label.htmlFor = optionId;
         label.textContent = option.text;
@@ -372,14 +344,10 @@ function renderSingleMultipleChoice(container, questionData, userAnswers) {
     });
 }
 
-/**
- * Renders a single TF question for the one-at-a-time quiz.
- */
 function renderSingleTrueFalse(container, questionData, userAnswers) {
     const questionText = document.createElement('p');
     questionText.innerHTML = `<strong>${questionData.question}</strong>`;
     container.appendChild(questionText);
-
     ['true', 'false'].forEach(value => {
         const optionId = `${questionData.id}-${value}`;
         const wrapper = document.createElement('div');
@@ -388,9 +356,7 @@ function renderSingleTrueFalse(container, questionData, userAnswers) {
         radio.name = questionData.id;
         radio.value = value;
         radio.id = optionId;
-        if (userAnswers[questionData.id] === value) {
-            radio.checked = true;
-        }
+        if (userAnswers[questionData.id] === value) radio.checked = true;
         const label = document.createElement('label');
         label.htmlFor = optionId;
         label.textContent = value === 'true' ? 'Wahr' : 'Falsch';
@@ -400,30 +366,102 @@ function renderSingleTrueFalse(container, questionData, userAnswers) {
 }
 
 /**
- * Renders a single Drag-the-words question.
+ * Renders a fully interactive drag-and-drop question.
  */
-function renderSingleDragTheWords(container, questionData) {
+function renderSingleDragTheWords(container, questionData, userAnswers, onAnswerUpdate) {
     const questionText = document.createElement('p');
     questionText.innerHTML = `<strong>${questionData.question}</strong>`;
     container.appendChild(questionText);
 
-    const sentenceP = document.createElement('p');
-    sentenceP.innerHTML = questionData.content.replace(/\[BLANK\]/g, '___________');
-    sentenceP.className = 'sentence-container';
-    container.appendChild(sentenceP);
-
+    const sentenceContainer = document.createElement('p');
+    sentenceContainer.className = 'sentence-container';
     const wordBank = document.createElement('div');
     wordBank.className = 'word-bank';
-    questionData.words.forEach(word => {
-        const wordSpan = document.createElement('span');
-        wordSpan.className = 'draggable-word';
-        wordSpan.textContent = word;
-        wordBank.appendChild(wordSpan);
-    });
-    container.appendChild(wordBank);
-    container.innerHTML += '<p><em>Drag & Drop ist in diesem Modus nicht interaktiv. Beantworte diese Frage gedanklich.</em></p>';
-}
+    wordBank.id = `word-bank-${questionData.id}`;
 
+    // --- Event Handlers ---
+    const onDragStart = (event) => {
+        event.dataTransfer.setData("text/plain", event.target.id);
+        event.dataTransfer.dropEffect = "move";
+    };
+
+    const onDragOver = (event) => {
+        event.preventDefault();
+        event.target.classList.add('drag-over');
+    };
+
+    const onDragLeave = (event) => {
+        event.target.classList.remove('drag-over');
+    };
+
+    const onDrop = (event) => {
+        event.preventDefault();
+        event.target.classList.remove('drag-over');
+        const draggedId = event.dataTransfer.getData("text/plain");
+        const draggedEl = document.getElementById(draggedId);
+        const targetEl = event.target;
+
+        if (targetEl.classList.contains('drop-zone') || targetEl.classList.contains('word-bank')) {
+            if (targetEl.children.length > 0 && targetEl.classList.contains('drop-zone')) {
+                wordBank.appendChild(targetEl.children[0]);
+            }
+            targetEl.appendChild(draggedEl);
+        }
+        
+        // Update answers
+        const currentAnswers = [];
+        sentenceContainer.querySelectorAll('.drop-zone').forEach(zone => {
+            currentAnswers.push(zone.children.length > 0 ? zone.children[0].textContent : null);
+        });
+        onAnswerUpdate(currentAnswers);
+    };
+
+    // --- Element Creation ---
+    wordBank.addEventListener('dragover', onDragOver);
+    wordBank.addEventListener('dragleave', onDragLeave);
+    wordBank.addEventListener('drop', onDrop);
+
+    const dropZones = [];
+    const sentenceParts = questionData.content.split('[BLANK]');
+    sentenceParts.forEach((part, index) => {
+        sentenceContainer.appendChild(document.createTextNode(part));
+        if (index < sentenceParts.length - 1) {
+            const dropZone = document.createElement('span');
+            dropZone.className = 'drop-zone';
+            dropZone.id = `drop-zone-${questionData.id}-${index}`;
+            dropZone.addEventListener('dragover', onDragOver);
+            dropZone.addEventListener('dragleave', onDragLeave);
+            dropZone.addEventListener('drop', onDrop);
+            sentenceContainer.appendChild(dropZone);
+            dropZones.push(dropZone);
+        }
+    });
+
+    questionData.words.forEach((word, index) => {
+        const wordEl = document.createElement('span');
+        wordEl.id = `word-${questionData.id}-${index}`;
+        wordEl.className = 'draggable-word';
+        wordEl.draggable = true;
+        wordEl.textContent = word;
+        wordEl.addEventListener('dragstart', onDragStart);
+        wordBank.appendChild(wordEl);
+    });
+
+    container.append(sentenceContainer, wordBank);
+    
+    // Restore saved state
+    const savedAnswers = userAnswers[questionData.id];
+    if (Array.isArray(savedAnswers)) {
+        savedAnswers.forEach((answer, index) => {
+            if (answer) {
+                const wordEl = Array.from(wordBank.children).find(w => w.textContent === answer);
+                if (wordEl) {
+                    dropZones[index].appendChild(wordEl);
+                }
+            }
+        });
+    }
+}
 
 // ===================================================================================
 //                                MASTER RENDERER & IMPORTER
