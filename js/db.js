@@ -1,5 +1,3 @@
-// js/db.js
-
 const DB_NAME = 'AssignmentFilesDB';
 const STORE_NAME = 'files';
 let db;
@@ -8,7 +6,7 @@ let db;
  * Initializes the IndexedDB database.
  * @returns {Promise<IDBDatabase>} A promise that resolves with the database object.
  */
-function initDB() {
+export function initDB() {
     return new Promise((resolve, reject) => {
         if (db) {
             return resolve(db);
@@ -19,7 +17,6 @@ function initDB() {
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
             if (!db.objectStoreNames.contains(STORE_NAME)) {
-                // The keyPath is a combination of assignmentId and subId + filename for uniqueness
                 db.createObjectStore(STORE_NAME, { keyPath: 'id' });
             }
         };
@@ -43,7 +40,7 @@ function initDB() {
  * @param {File} file - The file object to store.
  * @returns {Promise<void>}
  */
-async function addFile(assignmentId, subId, file) {
+export async function addFile(assignmentId, subId, file) {
     const db = await initDB();
     const transaction = db.transaction([STORE_NAME], 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
@@ -68,7 +65,7 @@ async function addFile(assignmentId, subId, file) {
  * @param {string} subId - The ID of the sub-assignment.
  * @returns {Promise<Array<object>>} A promise that resolves with an array of file records.
  */
-async function getFilesForAssignment(assignmentId, subId) {
+export async function getFilesForAssignment(assignmentId, subId) {
     const db = await initDB();
     const transaction = db.transaction([STORE_NAME], 'readonly');
     const store = transaction.objectStore(STORE_NAME);
@@ -78,7 +75,6 @@ async function getFilesForAssignment(assignmentId, subId) {
         request.onerror = (event) => reject('Error getting files: ' + event.target.errorCode);
     });
 
-    // Filter in memory for the specific assignment
     return allRecords.filter(record => record.assignmentId === assignmentId && record.subId === subId);
 }
 
@@ -87,7 +83,7 @@ async function getFilesForAssignment(assignmentId, subId) {
  * @param {string} fileId - The unique ID of the file to delete.
  * @returns {Promise<void>}
  */
-async function deleteFile(fileId) {
+export async function deleteFile(fileId) {
     const db = await initDB();
     const transaction = db.transaction([STORE_NAME], 'readwrite');
     const store = transaction.objectStore(STORE_NAME);
@@ -102,7 +98,7 @@ async function deleteFile(fileId) {
  * Retrieves all files from the database to include in the final submission.
  * @returns {Promise<Array<object>>}
  */
-async function getAllFiles() {
+export async function getAllFiles() {
     const db = await initDB();
     const transaction = db.transaction([STORE_NAME], 'readonly');
     const store = transaction.objectStore(STORE_NAME);
