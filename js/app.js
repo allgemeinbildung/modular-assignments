@@ -1,5 +1,5 @@
 import { renderSubAssignment, renderSolution } from './renderer.js';
-import { submitAssignment, gatherAllAssignmentsData } from './submission.js';
+// REMOVED: submission.js is no longer imported at the top level.
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. URL-Parameter auslesen
@@ -17,15 +17,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const submitButton = document.getElementById('submit-all');
     if (submitButton && viewMode !== 'solution') {
         submitButton.addEventListener('click', async () => {
-            const allData = await gatherAllAssignmentsData();
-            if (allData) {
-                // This function now sends data to the Apps Script
-                submitAssignment(allData);
+            try {
+                // DYNAMICALLY IMPORT submission.js on click
+                const { gatherAllAssignmentsData, submitAssignment } = await import('./submission.js');
+                
+                const allData = await gatherAllAssignmentsData();
+                if (allData) {
+                    submitAssignment(allData);
+                }
+            } catch (error) {
+                console.error("Failed to load submission module. Is js/config.js created?", error);
+                alert("Submission feature is not configured correctly. Please create 'js/config.js' from the example file.");
             }
         });
     }
 
-    // 2. JSON-Datei abrufen
+    // 2. JSON-Datei abrufen (This code will now run without issues)
     const jsonPath = `assignments/${assignmentId}.json`;
 
     fetch(jsonPath)

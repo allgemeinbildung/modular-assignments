@@ -166,6 +166,7 @@ export async function gatherAllAssignmentsData() {
 export function submitAssignment(data) {
     if (!data) return;
 
+    // This check remains important
     if (!SCRIPT_URL) {
         alert("Submission error: The Google Apps Script URL is not configured. Please set it in 'js/config.js'.");
         console.error("SCRIPT_URL is not set in js/config.js");
@@ -178,7 +179,7 @@ export function submitAssignment(data) {
 
     fetch(SCRIPT_URL, {
         method: 'POST',
-        mode: 'cors', // Important for cross-origin requests
+        mode: 'cors',
         cache: 'no-cache',
         headers: {
             'Content-Type': 'application/json',
@@ -186,7 +187,13 @@ export function submitAssignment(data) {
         body: JSON.stringify(data),
         redirect: 'follow'
     })
-    .then(response => response.json())
+    .then(response => {
+        // Add a check for a successful response before parsing JSON
+        if (!response.ok) {
+            throw new Error(`Network response was not ok, status: ${response.status}`);
+        }
+        return response.json();
+    })
     .then(result => {
         if (result.status === "success") {
             alert(`Success! Your work has been submitted. You can view it here: ${result.folderUrl}`);
@@ -202,4 +209,25 @@ export function submitAssignment(data) {
         submitButton.textContent = 'Alle Aufträge abgeben';
         submitButton.disabled = false;
     });
+}
+
+// Ensure the parseKey function is also present in your file.
+// I've omitted it here for brevity, but it should be included.
+function parseKey(key) {
+    const patterns = {
+        quill: /^textbox-assignment_([^_]+)_textbox-sub_(.+)$/,
+        quiz: /^(?:quiz|tf|drag)-assignment_([^_]+)_sub_(.+?)_question_(.+)$/
+    };
+    // ... rest of parseKey function
+    let match = key.match(patterns.quill);
+    if (match) {
+        const [, assignmentId, subId] = match;
+        return { type: 'quill', assignmentId, subId, questionId: null };
+    }
+    match = key.match(patterns.quiz);
+    if (match) {
+        const [, assignmentId, subId, questionId] = match;
+        return { type: 'quiz', assignmentId, subId, questionId };
+    }
+    return null;
 }
