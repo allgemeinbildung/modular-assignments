@@ -321,5 +321,283 @@ function renderMultipleChoice(data, assignmentId, subId) {
     });
 }
 
-// renderTrueFalse and renderDragTheWords would be here, unchanged from the previous version.
-// They are omitted for brevity in this explanation but would be in the actual file.
+function renderTrueFalse(data, assignmentId, subId) {
+    const contentRenderer = document.getElementById('content-renderer');
+    const form = document.createElement('form');
+    form.id = 'tf-quiz-form';
+
+    data.questions.forEach((questionData, index) => {
+        const storageKey = `tf-assignment_${assignmentId}_sub_${subId}_question_${questionData.id}`;
+        const savedAnswer = localStorage.getItem(storageKey);
+
+        const qContainer = document.createElement('div');
+        qContainer.className = 'quiz-question-container';
+
+        const qText = document.createElement('p');
+        qText.innerHTML = `<strong>Frage ${index + 1}:</strong> ${questionData.question}`;
+        qContainer.appendChild(qText);
+
+        ['true', 'false'].forEach(value => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'option-wrapper';
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = questionData.id;
+            radio.id = `${questionData.id}-${value}`;
+            radio.value = value;
+            if (savedAnswer === value) {
+                radio.checked = true;
+            }
+
+            const label = document.createElement('label');
+            label.htmlFor = radio.id;
+            label.textContent = value === 'true' ? 'Wahr' : 'Falsch';
+            
+            wrapper.appendChild(radio);
+            wrapper.appendChild(label);
+            qContainer.appendChild(wrapper);
+        });
+
+        const feedbackEl = document.createElement('div');
+        feedbackEl.id = `feedback-${questionData.id}`;
+        feedbackEl.className = 'feedback';
+        qContainer.appendChild(feedbackEl);
+        
+        if (savedAnswer) {
+            const isCorrect = (savedAnswer === 'true') === questionData.is_correct;
+            feedbackEl.textContent = savedAnswer === 'true' ? questionData.feedback_true : questionData.feedback_false;
+            feedbackEl.className = `feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+        }
+        
+        form.appendChild(qContainer);
+    });
+
+    contentRenderer.appendChild(form);
+
+    form.addEventListener('change', (event) => {
+        if (event.target.type === 'radio') {
+            const questionId = event.target.name;
+            const selectedValue = event.target.value;
+            const storageKey = `tf-assignment_${assignmentId}_sub_${subId}_question_${questionId}`;
+            
+            localStorage.setItem(storageKey, selectedValue);
+
+            const questionData = data.questions.find(q => q.id === questionId);
+            const feedbackEl = document.getElementById(`feedback-${questionId}`);
+            
+            const isCorrect = (selectedValue === 'true') === questionData.is_correct;
+            
+            feedbackEl.textContent = selectedValue === 'true' ? questionData.feedback_true : questionData.feedback_false;
+            feedbackEl.className = `feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+        }
+    });
+}
+
+function renderDragTheWords(data, assignmentId, subId) {
+    const contentRenderer = document.getElementById('content-renderer');
+    const storageKey = `drag-assignment_${assignmentId}_sub_${subId}`;
+
+    const sentenceContainer = document.createElement('div');
+    sentenceContainer.className = 'sentence-container';
+
+    const wordBank = document.createElement('div');
+    wordBank.id = 'word-bank';
+    wordBank.className = 'word-bank';
+
+    const parts = data.content.split('[BLANK]');
+    parts.forEach((part, index) => {
+        sentenceContainer.appendChild(document.createTextNode(part));
+        if (index < parts.length - 1) {
+            const dropZone = document.createElement('span');
+            dropZone.className = 'drop-zone';
+            dropZone.dataset.dropId = index;
+            sentenceContainer.appendChild(dropZone);
+        }
+    });
+
+    data.words.forEach(word => {
+        const wordEl = document.createElement('span');
+        wordEl.className = 'draggable-word';
+        wordEl.textContent = word;
+        wordEl.id = `word-${assignmentId}-${subId}-${word.replace(/\s+/g, '-')}`;
+        wordEl.draggable = true;
+        wordBank.appendChild(wordEl);
+    });
+
+    contentRenderer.appendChild(sentenceContainer);
+    contentRenderer.appendChild(wordBank);
+
+    let draggedItem = null;
+
+    contentRenderer.addEventListener('dragstart', (e) => {
+        if (e.target.classList.contains('draggable-word')) {
+            draggedItem = e.target;
+            setTimeout(() => e.target.style.display = 'none', 0);
+        }
+    });
+
+    contentRenderer.addEventListener('dragend', (e) => {
+        if(draggedItem) {
+           draggedItem.style.display = 'inline-block';
+           draggedItem = null;
+        }
+    });
+    
+    const allDropZones = [wordBank, ...contentRenderer.querySelectorAll('.drop-zone')];
+
+    allDropZones.forEach(zone => {
+        zone.addEventListener('dragover', (e) => e.preventDefault());
+        zone.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+            if(e.target.classList.contains('drop-zone') || e.target.id === 'word-bank') {
+                e.target.style.backgroundColor = '#e0e0e0';
+            }
+        });
+        zone.addEventListener('dragleave', (e) => {
+            if(e.target.classList.contains('drop-zone') || e.target.id === 'word-bank') {
+                e.target.style.backgroundColor = '';
+            }
+        });
+        zone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            let targetZone = e.target;
+            if(targetZone.classList.contains('draggable-word')) {
+                targetZone = targetZone.parentElement;
+            }
+
+            if (targetZone.classList.contains('drop-zone') || targetZone.id === 'word-bank') {
+                targetZone.style.backgroundColor = '';
+                if (draggedItem) {
+                   if (targetZone.children.length === 0 || targetZone.id === 'word-bank') {
+                         if(targetZone.children.length > 0 && targetZone.id !== 'word-bank') {
+                               wordBank.appendChild(targetZone.children[0]);
+                         }
+                         targetZone.appendChild(draggedItem);
+                         saveState();
+                   }
+                }
+            }
+        });
+    });
+
+    const checkButton = document.createElement('button');
+    checkButton.textContent = 'Antworten überprüfen';
+    checkButton.style.marginTop = '20px';
+    contentRenderer.appendChild(checkButton);
+
+    checkButton.addEventListener('click', () => {
+        const dropZones = sentenceContainer.querySelectorAll('.drop-zone');
+        let allCorrect = true;
+        dropZones.forEach((zone, index) => {
+            const wordEl = zone.querySelector('.draggable-word');
+            zone.style.borderStyle = 'solid';
+            if (wordEl) {
+                if (wordEl.textContent === data.solution[index]) {
+                    zone.style.borderColor = 'green';
+                } else {
+                    zone.style.borderColor = 'red';
+                    allCorrect = false;
+                }
+            } else {
+               zone.style.borderColor = 'red';
+               allCorrect = false;
+            }
+        });
+        if(allCorrect) {
+            alert('Super! Alles ist korrekt.');
+        }
+    });
+
+
+    function saveState() {
+        const state = {};
+        const dropZones = sentenceContainer.querySelectorAll('.drop-zone');
+        dropZones.forEach(zone => {
+            const wordEl = zone.querySelector('.draggable-word');
+            if(wordEl) {
+                state[zone.dataset.dropId] = wordEl.id;
+            }
+        });
+        localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+    
+    function loadState() {
+        const savedState = JSON.parse(localStorage.getItem(storageKey));
+        if (savedState) {
+            Object.keys(savedState).forEach(dropId => {
+                const wordId = savedState[dropId];
+                const wordEl = document.getElementById(wordId);
+                const dropZone = sentenceContainer.querySelector(`.drop-zone[data-drop-id='${dropId}']`);
+                if(wordEl && dropZone) {
+                    dropZone.appendChild(wordEl);
+                }
+            });
+        }
+    }
+    
+    loadState();
+}
+
+
+async function gatherAllAssignmentsData() {
+    let studentName = localStorage.getItem('studentName');
+    if (!studentName) {
+        studentName = prompt("Bitte gib deinen Namen für die Abgabe ein:", "");
+        if (studentName) {
+            localStorage.setItem('studentName', studentName);
+        } else {
+            alert('Abgabe abgebrochen, da kein Name eingegeben wurde.');
+            return null;
+        }
+    }
+
+    const studentData = {
+        studentName: studentName,
+        submissionDate: new Date().toISOString(),
+        assignments: {},
+        attachments: {}
+    };
+
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('textbox-assignment_') || key.startsWith('quiz-assignment_') || key.startsWith('tf-assignment_') || key.startsWith('drag-assignment_')) {
+            studentData.assignments[key] = localStorage.getItem(key);
+        }
+    }
+
+    const allFiles = await getAllFiles();
+    for (const fileRecord of allFiles) {
+        const base64String = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(fileRecord.file);
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = (error) => reject(error);
+        });
+        studentData.attachments[fileRecord.id] = {
+            name: fileRecord.name,
+            type: fileRecord.type,
+            content: base64String
+        };
+    }
+
+    console.log('Gathered Data (including files):', studentData);
+    return studentData;
+}
+
+function submitAssignment(data) {
+    if (!data) return;
+
+    if (Object.keys(data.assignments).length === 0 && Object.keys(data.attachments).length === 0) {
+        alert('Keine bearbeiteten Aufgaben oder Anhänge zum Abgeben gefunden.');
+        return;
+    }
+    const filename = `submission-${data.studentName.replace(/\s+/g, '_')}-${new Date().toISOString().split('T')[0]}.json`;
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    alert('Deine Antworten und Anhänge wurden als JSON-Datei heruntergeladen.');
+}
