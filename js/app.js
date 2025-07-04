@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const submitButton = document.getElementById('submit-all');
     if (submitButton && viewMode !== 'solution') {
-        // MODIFIED: Make the event listener async
         submitButton.addEventListener('click', async () => {
             const allData = await gatherAllAssignmentsData();
             if (allData) {
@@ -53,7 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 });
 
-// --- renderSolution remains unchanged ---
 function renderSolution(subAssignmentData) {
     document.getElementById('sub-title').textContent = `Lösung: ${subAssignmentData.title}`;
     document.getElementById('instructions').innerHTML = subAssignmentData.instructions;
@@ -83,7 +81,34 @@ function renderSolution(subAssignmentData) {
             break;
         
         case 'multipleChoice':
-             // ... same as before ...
+            const quizForm = document.createElement('form');
+            quizForm.id = 'quiz-form-solution';
+
+            subAssignmentData.questions.forEach((questionData, index) => {
+                const questionContainer = document.createElement('div');
+                questionContainer.className = 'quiz-question-container';
+
+                const questionText = document.createElement('p');
+                questionText.innerHTML = `<strong>Frage ${index + 1}:</strong> ${questionData.question}`;
+                questionContainer.appendChild(questionText);
+
+                questionData.options.forEach(option => {
+                    const optionWrapper = document.createElement('div');
+                    const label = document.createElement('label');
+                    label.textContent = option.text;
+
+                    if (option.is_correct) {
+                        label.style.fontWeight = 'bold';
+                        label.style.color = 'green';
+                        label.innerHTML += " (Richtige Antwort)";
+                    }
+                    
+                    optionWrapper.appendChild(label);
+                    questionContainer.appendChild(optionWrapper);
+                });
+                quizForm.appendChild(questionContainer);
+            });
+            contentRenderer.appendChild(quizForm);
             break;
             
         default:
@@ -91,10 +116,6 @@ function renderSolution(subAssignmentData) {
     }
 }
 
-
-/**
- * Master-Renderer: Now async to support async sub-renderers.
- */
 async function renderSubAssignment(subAssignmentData, assignmentId, subId) {
     document.getElementById('sub-title').textContent = subAssignmentData.title;
     document.getElementById('instructions').innerHTML = subAssignmentData.instructions;
@@ -105,7 +126,6 @@ async function renderSubAssignment(subAssignmentData, assignmentId, subId) {
 
     switch (subAssignmentData.type) {
         case 'quill':
-            // MODIFIED: Await the async quill renderer
             await renderQuill(subAssignmentData, assignmentId, subId);
             break;
         case 'multipleChoice':
@@ -116,9 +136,6 @@ async function renderSubAssignment(subAssignmentData, assignmentId, subId) {
     }
 }
 
-/**
- * MODIFIED: Rendert eine Quill-basierte Aufgabe and now manages file attachments.
- */
 async function renderQuill(data, assignmentId, subId) {
     const contentRenderer = document.getElementById('content-renderer');
     const storageKey = `textbox-assignment_${assignmentId}_textbox-sub_${subId}`;
@@ -135,7 +152,6 @@ async function renderQuill(data, assignmentId, subId) {
     editorDiv.id = 'quill-editor';
     contentRenderer.appendChild(editorDiv);
     
-    // --- NEW: File Attachment Section ---
     const attachmentContainer = document.createElement('div');
     attachmentContainer.id = 'attachment-container';
     attachmentContainer.style.marginTop = '20px';
@@ -156,7 +172,6 @@ async function renderQuill(data, assignmentId, subId) {
     fileList.style.paddingLeft = '0';
     attachmentContainer.appendChild(fileList);
     
-    // Function to render the list of attached files
     const refreshFileList = async () => {
         const files = await getFilesForAssignment(assignmentId, subId);
         fileList.innerHTML = '';
@@ -170,7 +185,7 @@ async function renderQuill(data, assignmentId, subId) {
             deleteButton.onclick = async () => {
                 if (confirm(`Möchten Sie die Datei "${fileRecord.name}" wirklich löschen?`)) {
                     await deleteFile(fileRecord.id);
-                    refreshFileList(); // Refresh list after deleting
+                    refreshFileList();
                 }
             };
             listItem.appendChild(deleteButton);
@@ -178,19 +193,16 @@ async function renderQuill(data, assignmentId, subId) {
         });
     };
     
-    // Event listener for the file input
     fileInput.addEventListener('change', async (event) => {
         const file = event.target.files[0];
         if (file) {
             await addFile(assignmentId, subId, file);
-            refreshFileList(); // Refresh list after adding
-            fileInput.value = ''; // Reset input
+            refreshFileList();
+            fileInput.value = '';
         }
     });
     
-    // Initial load of files
     await refreshFileList();
-    // --- End of File Attachment Section ---
 
     const quill = new Quill('#quill-editor', {
         theme: 'snow',
@@ -207,15 +219,80 @@ async function renderQuill(data, assignmentId, subId) {
     });
 }
 
-// --- renderMultipleChoice remains unchanged ---
 function renderMultipleChoice(data, assignmentId, subId) {
-    // ... same as before ...
+    const contentRenderer = document.getElementById('content-renderer');
+    const quizForm = document.createElement('form');
+    quizForm.id = 'quiz-form';
+
+    data.questions.forEach((questionData, index) => {
+        const storageKey = `quiz-assignment_${assignmentId}_sub_${subId}_question_${questionData.id}`;
+        const savedAnswer = localStorage.getItem(storageKey);
+        
+        const questionContainer = document.createElement('div');
+        questionContainer.className = 'quiz-question-container';
+
+        const questionText = document.createElement('p');
+        questionText.innerHTML = `<strong>Frage ${index + 1}:</strong> ${questionData.question}`;
+        questionContainer.appendChild(questionText);
+
+        questionData.options.forEach(option => {
+            const optionId = `${questionData.id}-${option.text.replace(/\s+/g, '-')}`;
+            const optionWrapper = document.createElement('div');
+            optionWrapper.className = 'option-wrapper';
+
+            const radioInput = document.createElement('input');
+            radioInput.type = 'radio';
+            radioInput.name = questionData.id;
+            radioInput.value = option.text;
+            radioInput.id = optionId;
+            
+            if (savedAnswer === option.text) {
+                radioInput.checked = true;
+            }
+
+            const label = document.createElement('label');
+            label.htmlFor = optionId;
+            label.textContent = option.text;
+
+            optionWrapper.appendChild(radioInput);
+            optionWrapper.appendChild(label);
+            questionContainer.appendChild(optionWrapper);
+        });
+
+        const feedbackElement = document.createElement('div');
+        feedbackElement.id = `feedback-${questionData.id}`;
+        feedbackElement.className = 'feedback';
+        questionContainer.appendChild(feedbackElement);
+        
+        if (savedAnswer) {
+            const selectedOption = data.questions.find(q => q.id === questionData.id).options.find(o => o.text === savedAnswer);
+            if (selectedOption) {
+                feedbackElement.textContent = selectedOption.feedback;
+                feedbackElement.className = `feedback ${selectedOption.is_correct ? 'correct' : 'incorrect'}`;
+            }
+        }
+        quizForm.appendChild(questionContainer);
+    });
+
+    contentRenderer.appendChild(quizForm);
+
+    quizForm.addEventListener('change', (event) => {
+        if (event.target.type === 'radio') {
+            const questionId = event.target.name;
+            const selectedValue = event.target.value;
+            const storageKey = `quiz-assignment_${assignmentId}_sub_${subId}_question_${questionId}`;
+            
+            localStorage.setItem(storageKey, selectedValue);
+
+            const questionData = data.questions.find(q => q.id === questionId);
+            const selectedOption = questionData.options.find(o => o.text === selectedValue);
+            const feedbackElement = document.getElementById(`feedback-${questionId}`);
+            feedbackElement.textContent = selectedOption.feedback;
+            feedbackElement.className = `feedback ${selectedOption.is_correct ? 'correct' : 'incorrect'}`;
+        }
+    });
 }
 
-
-/**
- * MODIFIED: Now async. Gathers data from localStorage AND files from IndexedDB.
- */
 async function gatherAllAssignmentsData() {
     let studentName = localStorage.getItem('studentName');
     if (!studentName) {
@@ -232,10 +309,9 @@ async function gatherAllAssignmentsData() {
         studentName: studentName,
         submissionDate: new Date().toISOString(),
         assignments: {},
-        attachments: {} // NEW: To store file data
+        attachments: {}
     };
 
-    // 1. Gather text and quiz data from localStorage
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key.startsWith('textbox-assignment_') || key.startsWith('quiz-assignment_')) {
@@ -243,10 +319,8 @@ async function gatherAllAssignmentsData() {
         }
     }
 
-    // 2. Gather file data from IndexedDB
     const allFiles = await getAllFiles();
     for (const fileRecord of allFiles) {
-        // Convert file blob to a Base64 string for JSON serialization
         const base64String = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(fileRecord.file);
@@ -264,9 +338,6 @@ async function gatherAllAssignmentsData() {
     return studentData;
 }
 
-/**
- * Erstellt eine JSON-Datei mit den Schülerdaten und löst den Download aus.
- */
 function submitAssignment(data) {
     if (!data) return;
 
