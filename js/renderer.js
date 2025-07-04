@@ -51,7 +51,6 @@ function renderQuizSolution(questions, targetContainer) {
 
 export function renderSolution(subAssignmentData, targetContainer = document.getElementById('content-renderer')) {
     targetContainer.innerHTML = '';
-    document.getElementById('action-container').style.display = 'none';
     document.getElementById('solution-import-container').style.display = 'none';
 
     document.getElementById('sub-title').textContent = subAssignmentData.title;
