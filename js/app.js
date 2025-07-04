@@ -3,12 +3,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const assignmentId = urlParams.get('assignmentId');
     const subId = urlParams.get('subId');
-    const viewMode = urlParams.get('view'); // For solution viewing in a later phase
+    const viewMode = urlParams.get('view'); 
 
     if (!assignmentId || !subId) {
         document.getElementById('main-title').textContent = 'Fehler';
         document.getElementById('content-renderer').innerHTML = '<p>Keine assignmentId oder subId in der URL gefunden.</p>';
         return;
+    }
+
+    // Event Listener für den Submit-Button hinzufügen
+    const submitButton = document.getElementById('submit-all');
+    if (submitButton) {
+        submitButton.addEventListener('click', () => {
+            const allData = gatherAllAssignmentsData();
+            submitAssignment(allData);
+        });
     }
 
     // 2. JSON-Datei abrufen
@@ -28,9 +37,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!subAssignmentData) {
                 throw new Error(`Teilaufgabe mit der ID "${subId}" in der JSON-Datei nicht gefunden.`);
             }
-
+            
             // 3. Master-Renderer aufrufen
-            renderSubAssignment(subAssignmentData);
+            renderSubAssignment(subAssignmentData, assignmentId, subId);
         })
         .catch(error => {
             console.error('Fehler beim Laden der Aufgabe:', error);
@@ -42,22 +51,21 @@ document.addEventListener('DOMContentLoaded', () => {
 /**
  * Master-Renderer: Leitet die Daten basierend auf dem Typ an die spezifische Render-Funktion weiter.
  * @param {object} subAssignmentData Das Datenobjekt der Teilaufgabe.
+ * @param {string} assignmentId Die ID der Hauptaufgabe.
+ * @param {string} subId Die ID der Teilaufgabe.
  */
-function renderSubAssignment(subAssignmentData) {
-    // Gemeinsame Elemente wie Titel und Anweisungen füllen
+function renderSubAssignment(subAssignmentData, assignmentId, subId) {
     document.getElementById('sub-title').textContent = subAssignmentData.title;
     document.getElementById('instructions').innerHTML = subAssignmentData.instructions;
-
     const contentRenderer = document.getElementById('content-renderer');
-    contentRenderer.innerHTML = ''; // Vorherigen Inhalt sicherheitshalber löschen
+    contentRenderer.innerHTML = '';
 
-    // Weiterleitung an den spezifischen Renderer basierend auf dem Typ
     switch (subAssignmentData.type) {
         case 'quill':
-            renderQuill(subAssignmentData);
+            renderQuill(subAssignmentData, assignmentId, subId);
             break;
         case 'multipleChoice':
-            renderMultipleChoice(subAssignmentData);
+            renderMultipleChoice(subAssignmentData, assignmentId, subId);
             break;
         default:
             contentRenderer.innerHTML = '<p>Error: Unknown assignment type.</p>';
@@ -65,23 +73,23 @@ function renderSubAssignment(subAssignmentData) {
 }
 
 /**
- * Rendert eine Quill-basierte Aufgabe.
+ * Rendert eine Quill-basierte Aufgabe und integriert localStorage.
  * @param {object} data Das Datenobjekt der Teilaufgabe.
+ * @param {string} assignmentId Die ID der Hauptaufgabe.
+ * @param {string} subId Die ID der Teilaufgabe.
  */
-function renderQuill(data) {
+function renderQuill(data, assignmentId, subId) {
     const contentRenderer = document.getElementById('content-renderer');
+    const storageKey = `textbox-assignment_${assignmentId}_textbox-sub_${subId}`; // [cite: 133]
 
-    // Liste der Fragen erstellen und anhängen
     const questionsList = document.createElement('ol');
     data.questions.forEach(q => {
         const listItem = document.createElement('li');
-        // We use innerHTML to correctly render potential formatting in the question text.
         listItem.innerHTML = `${q.text}`;
         questionsList.appendChild(listItem);
     });
     contentRenderer.appendChild(questionsList);
 
-    // Div für den Quill-Editor erstellen und initialisieren
     const editorDiv = document.createElement('div');
     editorDiv.id = 'quill-editor';
     contentRenderer.appendChild(editorDiv);
@@ -89,38 +97,46 @@ function renderQuill(data) {
     const quill = new Quill('#quill-editor', {
         theme: 'snow',
         modules: {
-            toolbar: [
-                ['bold', 'italic', 'underline', 'strike'],
-                [{ 'list': 'ordered' }, { 'list': 'bullet' }],
-                ['link', 'image']
-            ]
+            toolbar: [['bold', 'italic', 'underline'], [{ 'list': 'ordered' }, { 'list': 'bullet' }], ['link']]
         }
+    });
+    
+    // Gespeicherte Daten laden [cite: 135]
+    const savedData = localStorage.getItem(storageKey);
+    if (savedData) {
+        quill.setContents(JSON.parse(savedData));
+    }
+
+    // Änderungen im Editor speichern [cite: 134]
+    quill.on('text-change', () => {
+        localStorage.setItem(storageKey, JSON.stringify(quill.getContents()));
     });
 }
 
 /**
- * Rendert ein Multiple-Choice-Quiz.
+ * Rendert ein Multiple-Choice-Quiz und integriert localStorage.
  * @param {object} data Das Datenobjekt der Teilaufgabe.
+ * @param {string} assignmentId Die ID der Hauptaufgabe.
+ * @param {string} subId Die ID der Teilaufgabe.
  */
-function renderMultipleChoice(data) {
+function renderMultipleChoice(data, assignmentId, subId) {
     const contentRenderer = document.getElementById('content-renderer');
     const quizForm = document.createElement('form');
     quizForm.id = 'quiz-form';
 
-    // Durch jede Frage im JSON iterieren
     data.questions.forEach((questionData, index) => {
+        const storageKey = `quiz-assignment_${assignmentId}_sub_${subId}_question_${questionData.id}`;
+        const savedAnswer = localStorage.getItem(storageKey);
+        
         const questionContainer = document.createElement('div');
         questionContainer.className = 'quiz-question-container';
 
-        // Frage-Text
         const questionText = document.createElement('p');
         questionText.innerHTML = `<strong>Frage ${index + 1}:</strong> ${questionData.question}`;
         questionContainer.appendChild(questionText);
 
-        // Optionen (Radio-Buttons)
         questionData.options.forEach(option => {
             const optionId = `${questionData.id}-${option.text.replace(/\s+/g, '-')}`;
-
             const optionWrapper = document.createElement('div');
             optionWrapper.className = 'option-wrapper';
 
@@ -129,6 +145,11 @@ function renderMultipleChoice(data) {
             radioInput.name = questionData.id;
             radioInput.value = option.text;
             radioInput.id = optionId;
+            
+            // Gespeicherte Antwort wiederherstellen [cite: 137]
+            if (savedAnswer === option.text) {
+                radioInput.checked = true;
+            }
 
             const label = document.createElement('label');
             label.htmlFor = optionId;
@@ -139,28 +160,81 @@ function renderMultipleChoice(data) {
             questionContainer.appendChild(optionWrapper);
         });
 
-        // Feedback-Bereich für die Frage
         const feedbackElement = document.createElement('div');
         feedbackElement.id = `feedback-${questionData.id}`;
         feedbackElement.className = 'feedback';
         questionContainer.appendChild(feedbackElement);
+        
+        // Initiales Feedback für vorgewählte Antworten anzeigen
+        if (savedAnswer) {
+            const selectedOption = questionData.options.find(o => o.text === savedAnswer);
+            if (selectedOption) {
+                feedbackElement.textContent = selectedOption.feedback;
+                feedbackElement.className = `feedback ${selectedOption.is_correct ? 'correct' : 'incorrect'}`;
+            }
+        }
 
         quizForm.appendChild(questionContainer);
     });
 
     contentRenderer.appendChild(quizForm);
 
-    // Event Listener hinzufügen, um Feedback zu geben
     quizForm.addEventListener('change', (event) => {
         if (event.target.type === 'radio') {
             const questionId = event.target.name;
             const selectedValue = event.target.value;
+            const storageKey = `quiz-assignment_${assignmentId}_sub_${subId}_question_${questionId}`;
+            
+            // Antwort speichern und Feedback geben [cite: 136]
+            localStorage.setItem(storageKey, selectedValue);
+
             const questionData = data.questions.find(q => q.id === questionId);
             const selectedOption = questionData.options.find(o => o.text === selectedValue);
-
             const feedbackElement = document.getElementById(`feedback-${questionId}`);
             feedbackElement.textContent = selectedOption.feedback;
             feedbackElement.className = `feedback ${selectedOption.is_correct ? 'correct' : 'incorrect'}`;
         }
     });
+}
+
+/**
+ * Sammelt alle Daten aus dem localStorage, die zu den Aufgaben gehören.
+ * @returns {object} Ein Objekt mit allen gesammelten Daten.
+ */
+function gatherAllAssignmentsData() {
+    const studentData = {
+        studentName: localStorage.getItem('studentName') || 'UnknownStudent',
+        submissionDate: new Date().toISOString(),
+        assignments: {}
+    };
+
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        // Schlüssel für Quill-Antworten und Quiz-Antworten scannen
+        if (key.startsWith('textbox-assignment_') || key.startsWith('quiz-assignment_')) {
+            studentData.assignments[key] = localStorage.getItem(key);
+        }
+    }
+    console.log('Gathered Data:', studentData);
+    return studentData;
+}
+
+/**
+ * Erstellt eine JSON-Datei mit den Schülerdaten und löst den Download aus.
+ * @param {object} data Die gesammelten Schülerdaten.
+ */
+function submitAssignment(data) {
+    if (Object.keys(data.assignments).length === 0) {
+        alert('Keine bearbeiteten Aufgaben zum Abgeben gefunden.');
+        return;
+    }
+    const filename = `submission-${data.studentName}-${data.submissionDate.split('T')[0]}.json`;
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    alert('Deine Antworten wurden als JSON-Datei heruntergeladen.');
 }
