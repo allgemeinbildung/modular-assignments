@@ -6,8 +6,8 @@ const QUESTIONS_PREFIX = 'modular-questions_';
 const TITLE_PREFIX = 'title_';
 
 /**
- * Gathers all assignment data from localStorage and IndexedDB.
- */
+ * Gathers all assignment data from localStorage and IndexedDB.
+ */
 async function gatherAllAssignmentsData() {
     let identifier = localStorage.getItem('studentIdentifier');
     if (!identifier) {
@@ -22,7 +22,7 @@ async function gatherAllAssignmentsData() {
     const allDataPayload = {};
     const answerRegex = new RegExp(`^${ANSWER_PREFIX}(.+)_sub_(.+)$`);
 
-    // 1. Gather all answers from localStorage
+    // ✅ MODIFIED: Gather all answers and check for scores
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         const match = key.match(answerRegex);
@@ -31,7 +31,26 @@ async function gatherAllAssignmentsData() {
             if (!allDataPayload[assignmentId]) allDataPayload[assignmentId] = {};
             if (!allDataPayload[assignmentId][subId]) allDataPayload[assignmentId][subId] = {};
             
-            allDataPayload[assignmentId][subId].answer = localStorage.getItem(key);
+            const savedItemString = localStorage.getItem(key);
+            // Default behavior: assume a simple string answer (like from Quill)
+            allDataPayload[assignmentId][subId].answer = savedItemString;
+
+            // Try to parse it as JSON to check if it's a quiz with a score
+            try {
+                const parsedData = JSON.parse(savedItemString);
+                if (typeof parsedData === 'object' && parsedData !== null) {
+                    // If it's a quiz, the 'answer' should just be the userAnswers object, stringified
+                    if (parsedData.userAnswers) {
+                        allDataPayload[assignmentId][subId].answer = JSON.stringify(parsedData.userAnswers);
+                    }
+                    // If a score exists, add it to the payload
+                    if (parsedData.score) {
+                        allDataPayload[assignmentId][subId].achievedPoints = parsedData.score;
+                    }
+                }
+            } catch (e) {
+                // It's not JSON, so it's a standard Quill answer. The default assignment is correct.
+            }
         }
     }
 

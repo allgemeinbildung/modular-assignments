@@ -173,10 +173,19 @@ function renderQuiz(data, assignmentId, subId) {
             `;
         });
 
+        const scoreString = `${score} / ${questions.length}`;
+
+        // ✅ MODIFIED: Save score to localStorage along with answers
+        const dataToSave = {
+            userAnswers,
+            score: scoreString
+        };
+        localStorage.setItem(storageKey, JSON.stringify(dataToSave));
+
         const summaryHTML = `
             <div class="quiz-results-container">
                 <h2>Quiz Complete!</h2>
-                <div class="result-summary">${score} / ${questions.length} Correct</div>
+                <div class="result-summary">${scoreString} Correct</div>
                 ${resultsDetailsHTML}
             </div>
         `;
