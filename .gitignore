@@ -1,5 +1,2 @@
 # Dependency directories
 node_modules/
-
-# Local configuration files
-js/config.js
