@@ -16,7 +16,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function displayAssignments() {
         assignmentListContainer.innerHTML = '';
         const assignments = new Map();
-        const keyRegex = /^(?:textbox|quiz|tf|drag)-assignment_([^_]+)_sub_(.+?)(?:_question_|$)/;
+        
+        // --- FIX ---
+        // This regex is now more robust. It correctly finds all assignment types
+        // by looking for any of the known prefixes (textbox, quiz, tf, drag)
+        // and handles the optional "textbox-" in the sub-ID key part.
+        const keyRegex = /^(?:textbox|quiz|tf|drag)-assignment_([^_]+)_(?:textbox-)?sub_(.+?)(?:_question_|$)/;
 
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
@@ -45,7 +50,9 @@ document.addEventListener('DOMContentLoaded', () => {
             groupDiv.appendChild(title);
 
             const list = document.createElement('ul');
-            for (const subId of subIds) {
+            // Convert Set to Array and sort it for consistent order
+            const sortedSubIds = Array.from(subIds).sort();
+            for (const subId of sortedSubIds) {
                 const listItem = document.createElement('li');
                 const link = document.createElement('a');
                 link.href = `../index.html?assignmentId=${assignmentId}&subId=${subId}`;
