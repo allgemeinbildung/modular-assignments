@@ -20,12 +20,13 @@
         "content": "<h4>Lösung zu den Merkmalen einer Straftat</h4><p>Die drei Merkmale sind: 1. **Tatbestandsmässigkeit** (die Handlung entspricht der Beschreibung in einem Gesetz), 2. **Rechtswidrigkeit** (die Handlung ist nicht durch Notwehr oder einen anderen Grund gerechtfertigt), und 3. **Schuld** (der Täter handelt vorwerfbar).</p><p>Ein Verbrechen ist eine Tat, die mit einer Freiheitsstrafe von mehr als drei Jahren bedroht ist, während ein Vergehen mit einer geringeren Freiheitsstrafe oder Geldstrafe bedroht ist.</p>"
       }
     },
-    "Strafrecht-Quiz": {
-      "type": "multipleChoice",
-      "title": "Strafrecht Quiz",
-      "instructions": "<p>Teste dein Wissen über die Grundlagen des Strafrechts.</p>",
+    "Strafrecht-Uebungen": {
+      "type": "quiz",
+      "title": "Strafrecht-Übungen",
+      "instructions": "<p>Beantworte die folgenden gemischten Fragen, um dein Wissen zu testen.</p>",
       "questions": [
         {
+          "type": "multipleChoice",
           "id": "sr_mq1",
           "question": "<p>Welches der folgenden Delikte ist typischerweise ein Antragsdelikt?</p>",
           "options": [
@@ -35,6 +36,7 @@
           ]
         },
         {
+          "type": "multipleChoice",
           "id": "sr_mq2",
           "question": "<p>Was bedeutet 'in dubio pro reo'?</p>",
           "options": [
@@ -42,38 +44,32 @@
             { "text": "Das Gesetz ist hart, aber es ist das Gesetz.", "is_correct": false, "feedback": "Falsch, das ist 'dura lex, sed lex'." },
             { "text": "Ohne Kläger kein Richter.", "is_correct": false, "feedback": "Falsch. Das beschreibt das Antragsprinzip, ist aber nicht die Bedeutung des lateinischen Satzes." }
           ]
-        }
-      ]
-    },
-    "Wahr-Falsch-Uebung": {
-        "type": "trueFalse",
-        "title": "Wahr oder Falsch Übung",
-        "instructions": "<p>Beurteile, ob die folgenden Aussagen richtig oder falsch sind.</p>",
-        "questions": [
-            {
-            "id": "tf_q1",
-            "question": "Notwehr ist immer rechtswidrig.",
-            "is_correct": false,
-            "feedback_true": "Falsch. Notwehr ist ein anerkannter Rechtfertigungsgrund und daher nicht rechtswidrig.",
-            "feedback_false": "Richtig. Notwehr ist nicht rechtswidrig, da sie eine Handlung rechtfertigt."
-            }
-        ]
-    },
-    "Drag-and-Drop-Satz": {
-        "type": "dragTheWords",
-        "title": "Lückentext: Merkmale einer Straftat",
-        "instructions": "<p>Ziehe die richtigen Wörter in die Lücken, um den Satz zu vervollständigen.</p>",
-        "content": "Eine Handlung gilt als Straftat, wenn sie die Merkmale [BLANK], Rechtswidrigkeit und [BLANK] erfüllt.",
-        "words": [
+        },
+        {
+          "type": "trueFalse",
+          "id": "tf_q1",
+          "question": "Notwehr ist immer rechtswidrig.",
+          "is_correct": false,
+          "feedback_true": "Falsch. Notwehr ist ein anerkannter Rechtfertigungsgrund und daher nicht rechtswidrig.",
+          "feedback_false": "Richtig. Notwehr ist nicht rechtswidrig, da sie eine Handlung rechtfertigt."
+        },
+        {
+          "type": "dragTheWords",
+          "id": "dd_satz_1",
+          "question": "Vervollständige den Lückentext:",
+          "content": "Eine Handlung gilt als Straftat, wenn sie die Merkmale [BLANK], Rechtswidrigkeit und [BLANK] erfüllt.",
+          "words": [
             "Tatbestandsmässigkeit",
             "Schuld",
             "Absicht",
             "Vergeltung"
-        ],
-        "solution": [
+          ],
+          "solution": [
             "Tatbestandsmässigkeit",
             "Schuld"
-        ]
+          ]
+        }
+      ]
     }
   }
 }
