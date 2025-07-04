@@ -35,59 +35,21 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        if (!confirm("Bist du sicher? Das Importieren wird alle bestehenden, gleichnamigen Antworten in deinem Browser überschreiben.")) {
-            return;
-        }
-
         try {
+            // First, validate the JSON structure to ensure it's a valid submission file.
             const data = JSON.parse(fileContent);
-            if (!data.payload || !data.identifier || !data.createdAt) {
-                throw new Error('Die JSON-Datei hat nicht die erwartete Struktur.');
+            if (!data.assignments || !data.studentName || !data.submissionDate) {
+                 throw new Error('Die JSON-Datei hat nicht die erwartete Struktur einer `submission.json` Datei.');
             }
+
+            // Encode the entire file content for safe transport in the URL
+            const encodedData = encodeURIComponent(fileContent);
             
-            // Set student identifier
-            localStorage.setItem('studentIdentifier', data.identifier);
+            // Construct the new URL for the viewer, passing the data
+            const viewerUrl = `viewer/viewer.html?data=${encodedData}`;
 
-            let importedCount = 0;
-            // Iterate through the main assignments (e.g., "3.3-strafrecht")
-            for (const assignmentId in data.payload) {
-                const subAssignments = data.payload[assignmentId];
-                
-                // Iterate through sub-assignments (e.g., "Merkmale-einer-Straftat")
-                for (const subId in subAssignments) {
-                    const subData = subAssignments[subId];
-
-                    const answerKey = `${ANSWER_PREFIX}${assignmentId}_sub_${subId}`;
-                    const questionsKey = `${QUESTIONS_PREFIX}${assignmentId}_sub_${subId}`;
-                    const titleKey = `${TITLE_PREFIX}${assignmentId}_sub_${subId}`;
-                    const typeKey = `${TYPE_PREFIX}${assignmentId}_sub_${subId}`;
-
-                    // Reconstruct the answer value based on assignment type
-                    let finalAnswer;
-                    if (subData.type === 'quiz') {
-                        // For quizzes, the stored value is a JSON string containing both the answers and the score
-                        finalAnswer = JSON.stringify({
-                            userAnswers: subData.answer ? JSON.parse(subData.answer) : {},
-                            score: subData.achievedPoints || 'Nicht bewertet'
-                        });
-                    } else { // For 'quill' type, the answer is just the HTML string
-                        finalAnswer = subData.answer;
-                    }
-
-                    // Set the data back into localStorage
-                    localStorage.setItem(answerKey, finalAnswer);
-                    localStorage.setItem(titleKey, subData.title);
-                    localStorage.setItem(typeKey, subData.type);
-                    if (subData.questions) {
-                        localStorage.setItem(questionsKey, JSON.stringify(subData.questions));
-                    }
-                    importedCount++;
-                }
-            }
-
-            showStatus(`Import erfolgreich! ${importedCount} Aufgabenbereiche wurden wiederhergestellt.`, 'success');
-            importBtn.disabled = true;
-            fileInput.value = ''; // Reset file input
+            // Redirect to the viewer page
+            window.location.href = viewerUrl;
 
         } catch (error) {
             console.error('Import Fehler:', error);
