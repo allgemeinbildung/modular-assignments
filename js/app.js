@@ -1,4 +1,5 @@
 import { renderSubAssignment } from './renderer.js';
+import { printAssignmentAnswers } from './printer.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -22,6 +23,23 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error("Submission failed:", error);
                 alert("Ein Fehler ist bei der Abgabe aufgetreten. Überprüfe die Konsole für Details.");
+            }
+        });
+    }
+
+    // Attach print event listener
+    const printButton = document.getElementById('print-answers');
+    if (printButton) {
+        printButton.addEventListener('click', async () => {
+            if (!assignmentId) {
+                alert("Keine Aufgabe zum Drucken ausgewählt.");
+                return;
+            }
+            try {
+                await printAssignmentAnswers(assignmentId);
+            } catch (error) {
+                console.error("Printing failed:", error);
+                alert("Ein Fehler ist beim Drucken aufgetreten. Überprüfe die Konsole für Details.");
             }
         });
     }
