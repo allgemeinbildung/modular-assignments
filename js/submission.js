@@ -112,8 +112,8 @@ export async function submitAssignment() {
         const result = await response.json();
 
         if (response.ok && result.status === 'success') {
-            // ✅ MODIFIED: Simple confirmation message
-            alert('Deine Daten wurden erfolgreich übermittelt.');
+            // ✅ MODIFIED: Simple confirmation message with no extra variables
+            alert('Daten wurden erfolgreich übermittelt.');
         } else {
             throw new Error(result.message || 'Ein unbekannter Server-Fehler ist aufgetreten.');
         }
