@@ -111,19 +111,78 @@ async function renderQuill(data, assignmentId, subId) {
 }
 
 /**
- * NEW: Renders a stateful, multi-type quiz engine.
+ * NEW: Renders a stateful, multi-type quiz engine with a results summary.
  */
 function renderQuiz(data, assignmentId, subId) {
     const { questions } = data;
     const contentRenderer = document.getElementById('content-renderer');
     const storageKey = `${QUILL_ANSWER_PREFIX}${assignmentId}_sub_${subId}`;
     let currentIndex = 0;
-    let userAnswers = JSON.parse(localStorage.getItem(storageKey) || '{ "userAnswers": {} }').userAnswers;
+    
+    let savedData = JSON.parse(localStorage.getItem(storageKey) || '{}');
+    let userAnswers = savedData.userAnswers || {};
 
     const saveAnswers = () => {
-        localStorage.setItem(storageKey, JSON.stringify({ userAnswers }));
+        const currentSavedData = JSON.parse(localStorage.getItem(storageKey) || '{}');
+        currentSavedData.userAnswers = userAnswers;
+        localStorage.setItem(storageKey, JSON.stringify(currentSavedData));
     };
 
+    const showResults = () => {
+        let score = 0;
+        let resultsDetailsHTML = '';
+
+        questions.forEach(q => {
+            const userAnswer = userAnswers[q.id];
+            let isCorrect = false;
+            let correctAnswerText = '';
+
+            switch (q.type) {
+                case 'multipleChoice':
+                    const correctOption = q.options.find(opt => opt.is_correct);
+                    correctAnswerText = correctOption ? correctOption.text : 'N/A';
+                    isCorrect = userAnswer === correctAnswerText;
+                    break;
+                case 'trueFalse':
+                    correctAnswerText = q.is_correct ? 'True' : 'False';
+                    isCorrect = (userAnswer || '').toLowerCase() === correctAnswerText.toLowerCase();
+                    break;
+                case 'dragTheWords':
+                    correctAnswerText = q.solution.join(', ');
+                    let userAnswerText = '';
+                    try {
+                        const userAnswerArray = JSON.parse(userAnswer || '[]');
+                        userAnswerText = Array.isArray(userAnswerArray) ? userAnswerArray.join(', ') : '';
+                    } catch {
+                        userAnswerText = userAnswer || '';
+                    }
+                    isCorrect = userAnswerText === correctAnswerText;
+                    break;
+            }
+
+            if (isCorrect) {
+                score++;
+            }
+
+            resultsDetailsHTML += `
+                <div class="result-question">
+                    <p><strong>${q.question}</strong></p>
+                    <p class="user-answer ${isCorrect ? 'correct' : 'incorrect'}"><strong>Your Answer:</strong> ${userAnswer || 'Not answered'}</p>
+                    ${!isCorrect ? `<p class="correct-answer-display"><strong>Correct Answer:</strong> ${correctAnswerText}</p>` : ''}
+                </div>
+            `;
+        });
+
+        const summaryHTML = `
+            <div class="quiz-results-container">
+                <h2>Quiz Complete!</h2>
+                <div class="result-summary">${score} / ${questions.length} Correct</div>
+                ${resultsDetailsHTML}
+            </div>
+        `;
+        contentRenderer.innerHTML = summaryHTML;
+    };
+    
     const displayQuestion = () => {
         contentRenderer.innerHTML = '';
         const questionData = questions[currentIndex];
@@ -133,6 +192,7 @@ function renderQuiz(data, assignmentId, subId) {
         questionContainer.innerHTML = `
             <div class="quiz-header">
                 <h3>Frage ${currentIndex + 1} von ${questions.length}</h3>
+                <span class="quiz-progress">${currentIndex + 1}/${questions.length}</span>
             </div>
             <div class="quiz-question-display">
                 <p><strong>${questionData.question}</strong></p>
@@ -142,23 +202,66 @@ function renderQuiz(data, assignmentId, subId) {
         `;
 
         const optionsContainer = questionContainer.querySelector('.options-container');
+
         switch (questionData.type) {
             case 'multipleChoice':
                 questionData.options.forEach(option => {
-                    const optionId = `q_${currentIndex}_${option.text.slice(0,5)}`;
+                    const optionId = `q_${currentIndex}_${option.text.replace(/\s/g, '')}`;
                     optionsContainer.innerHTML += `
                         <div>
-                            <input type="radio" name="mc_option" id="${optionId}" value="${option.text}">
+                            <input type="radio" name="mc_option" id="${optionId}" value="${option.text}" ${userAnswers[questionData.id] === option.text ? 'checked' : ''}>
                             <label for="${optionId}">${option.text}</label>
                         </div>`;
                 });
+                optionsContainer.addEventListener('change', e => {
+                    if (e.target.name === 'mc_option') {
+                        userAnswers[questionData.id] = e.target.value;
+                        saveAnswers();
+                    }
+                });
                 break;
-            // Add other cases for 'trueFalse', 'dragTheWords' if needed
+            case 'trueFalse':
+                 optionsContainer.innerHTML += `
+                    <div>
+                        <input type="radio" name="tf_option" id="q_${currentIndex}_true" value="True" ${userAnswers[questionData.id] === 'True' ? 'checked' : ''}>
+                        <label for="q_${currentIndex}_true">True</label>
+                    </div>
+                    <div>
+                        <input type="radio" name="tf_option" id="q_${currentIndex}_false" value="False" ${userAnswers[questionData.id] === 'False' ? 'checked' : ''}>
+                        <label for="q_${currentIndex}_false">False</label>
+                    </div>`;
+                optionsContainer.addEventListener('change', e => {
+                    if (e.target.name === 'tf_option') {
+                        userAnswers[questionData.id] = e.target.value;
+                        saveAnswers();
+                    }
+                });
+                break;
+            case 'dragTheWords':
+                let blankIndex = 0;
+                const sentenceHTML = questionData.content.replace(/\[BLANK\]/g, () => `<input type="text" class="drag-the-words-blank" data-blank-index="${blankIndex++}" style="margin: 0 5px;"/>`);
+                optionsContainer.innerHTML = `
+                    <div class="sentence-container">${sentenceHTML}</div>
+                    <div class="word-bank" style="margin-top: 15px;"><strong>Words:</strong> ${questionData.words.join(', ')}</div>`;
+                
+                const blanks = optionsContainer.querySelectorAll('.drag-the-words-blank');
+                const savedSlots = JSON.parse(userAnswers[questionData.id] || '[]');
+                blanks.forEach((blank, index) => {
+                    if (savedSlots[index]) blank.value = savedSlots[index];
+                });
+
+                optionsContainer.addEventListener('input', debounce(e => {
+                    if (e.target.classList.contains('drag-the-words-blank')) {
+                        const currentAnswers = Array.from(blanks).map(b => b.value);
+                        userAnswers[questionData.id] = JSON.stringify(currentAnswers);
+                        saveAnswers();
+                    }
+                }, 300));
+                break;
         }
 
         contentRenderer.appendChild(questionContainer);
         
-        // Add navigation buttons
         const navContainer = questionContainer.querySelector('.quiz-navigation');
         if (currentIndex > 0) {
             const prevBtn = document.createElement('button');
@@ -167,31 +270,22 @@ function renderQuiz(data, assignmentId, subId) {
             prevBtn.onclick = () => { currentIndex--; displayQuestion(); };
             navContainer.appendChild(prevBtn);
         }
-        if (currentIndex < questions.length - 1) {
-            const nextBtn = document.createElement('button');
-            nextBtn.textContent = 'Weiter';
-            nextBtn.className = 'quiz-nav-btn';
-            nextBtn.onclick = () => { currentIndex++; displayQuestion(); };
-            navContainer.appendChild(nextBtn);
-        }
 
-        // Add event listeners and restore state
-        optionsContainer.addEventListener('change', e => {
-            if (e.target.type === 'radio') {
-                userAnswers[questionData.id] = e.target.value;
-                saveAnswers();
-            }
-        });
-        
-        const savedAnswer = userAnswers[questionData.id];
-        if (savedAnswer) {
-            const selectedRadio = optionsContainer.querySelector(`input[value="${savedAnswer}"]`);
-            if (selectedRadio) selectedRadio.checked = true;
+        const nextBtn = document.createElement('button');
+        nextBtn.className = 'quiz-nav-btn';
+        if (currentIndex < questions.length - 1) {
+            nextBtn.textContent = 'Weiter';
+            nextBtn.onclick = () => { currentIndex++; displayQuestion(); };
+        } else {
+            nextBtn.textContent = 'Fertigstellen';
+            nextBtn.onclick = showResults;
         }
+        navContainer.appendChild(nextBtn);
     };
 
     displayQuestion();
 }
+
 
 /**
  * Main function to render the sub-assignment based on its type.
