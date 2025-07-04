@@ -44,6 +44,20 @@
           ]
         }
       ]
+    },
+    "Wahr-Falsch-Uebung": {
+        "type": "trueFalse",
+        "title": "Wahr oder Falsch Übung",
+        "instructions": "<p>Beurteile, ob die folgenden Aussagen richtig oder falsch sind.</p>",
+        "questions": [
+            {
+            "id": "tf_q1",
+            "question": "Notwehr ist immer rechtswidrig.",
+            "is_correct": false,
+            "feedback_true": "Falsch. Notwehr ist ein anerkannter Rechtfertigungsgrund und daher nicht rechtswidrig.",
+            "feedback_false": "Richtig. Notwehr ist nicht rechtswidrig, da sie eine Handlung rechtfertigt."
+            }
+        ]
     }
   }
 }

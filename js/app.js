@@ -81,9 +81,7 @@ function renderSolution(subAssignmentData) {
             break;
         
         case 'multipleChoice':
-            const quizForm = document.createElement('form');
-            quizForm.id = 'quiz-form-solution';
-
+            const mcQuizForm = document.createElement('form');
             subAssignmentData.questions.forEach((questionData, index) => {
                 const questionContainer = document.createElement('div');
                 questionContainer.className = 'quiz-question-container';
@@ -106,9 +104,29 @@ function renderSolution(subAssignmentData) {
                     optionWrapper.appendChild(label);
                     questionContainer.appendChild(optionWrapper);
                 });
-                quizForm.appendChild(questionContainer);
+                mcQuizForm.appendChild(questionContainer);
             });
-            contentRenderer.appendChild(quizForm);
+            contentRenderer.appendChild(mcQuizForm);
+            break;
+
+        case 'trueFalse':
+            const tfQuizForm = document.createElement('form');
+            subAssignmentData.questions.forEach((questionData, index) => {
+                const questionContainer = document.createElement('div');
+                questionContainer.className = 'quiz-question-container';
+
+                const questionText = document.createElement('p');
+                questionText.innerHTML = `<strong>Frage ${index + 1}:</strong> ${questionData.question}`;
+                questionContainer.appendChild(questionText);
+                
+                const answerText = document.createElement('p');
+                const correctAnswer = questionData.is_correct ? 'Wahr' : 'Falsch';
+                answerText.innerHTML = `Richtige Antwort: <strong>${correctAnswer}</strong>`;
+                questionContainer.appendChild(answerText);
+
+                tfQuizForm.appendChild(questionContainer);
+            });
+            contentRenderer.appendChild(tfQuizForm);
             break;
             
         default:
@@ -131,6 +149,9 @@ async function renderSubAssignment(subAssignmentData, assignmentId, subId) {
         case 'multipleChoice':
             renderMultipleChoice(subAssignmentData, assignmentId, subId);
             break;
+        case 'trueFalse':
+            renderTrueFalse(subAssignmentData, assignmentId, subId);
+            break;
         default:
             contentRenderer.innerHTML = '<p>Error: Unknown assignment type.</p>';
     }
@@ -152,6 +173,7 @@ async function renderQuill(data, assignmentId, subId) {
     editorDiv.id = 'quill-editor';
     contentRenderer.appendChild(editorDiv);
     
+    // Attachment logic remains the same
     const attachmentContainer = document.createElement('div');
     attachmentContainer.id = 'attachment-container';
     attachmentContainer.style.marginTop = '20px';
@@ -293,6 +315,78 @@ function renderMultipleChoice(data, assignmentId, subId) {
     });
 }
 
+function renderTrueFalse(data, assignmentId, subId) {
+    const contentRenderer = document.getElementById('content-renderer');
+    const form = document.createElement('form');
+    form.id = 'tf-quiz-form';
+
+    data.questions.forEach((questionData, index) => {
+        const storageKey = `tf-assignment_${assignmentId}_sub_${subId}_question_${questionData.id}`;
+        const savedAnswer = localStorage.getItem(storageKey); // 'true' or 'false'
+
+        const qContainer = document.createElement('div');
+        qContainer.className = 'quiz-question-container';
+
+        const qText = document.createElement('p');
+        qText.innerHTML = `<strong>Frage ${index + 1}:</strong> ${questionData.question}`;
+        qContainer.appendChild(qText);
+
+        ['true', 'false'].forEach(value => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'option-wrapper';
+            const radio = document.createElement('input');
+            radio.type = 'radio';
+            radio.name = questionData.id;
+            radio.id = `${questionData.id}-${value}`;
+            radio.value = value;
+            if (savedAnswer === value) {
+                radio.checked = true;
+            }
+
+            const label = document.createElement('label');
+            label.htmlFor = radio.id;
+            label.textContent = value === 'true' ? 'Wahr' : 'Falsch';
+            
+            wrapper.appendChild(radio);
+            wrapper.appendChild(label);
+            qContainer.appendChild(wrapper);
+        });
+
+        const feedbackEl = document.createElement('div');
+        feedbackEl.id = `feedback-${questionData.id}`;
+        feedbackEl.className = 'feedback';
+        qContainer.appendChild(feedbackEl);
+        
+        if (savedAnswer) {
+            const isCorrect = (savedAnswer === 'true') === questionData.is_correct;
+            feedbackEl.textContent = savedAnswer === 'true' ? questionData.feedback_true : questionData.feedback_false;
+            feedbackEl.className = `feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+        }
+        
+        form.appendChild(qContainer);
+    });
+
+    contentRenderer.appendChild(form);
+
+    form.addEventListener('change', (event) => {
+        if (event.target.type === 'radio') {
+            const questionId = event.target.name;
+            const selectedValue = event.target.value;
+            const storageKey = `tf-assignment_${assignmentId}_sub_${subId}_question_${questionId}`;
+            
+            localStorage.setItem(storageKey, selectedValue);
+
+            const questionData = data.questions.find(q => q.id === questionId);
+            const feedbackEl = document.getElementById(`feedback-${questionId}`);
+            
+            const isCorrect = (selectedValue === 'true') === questionData.is_correct;
+            
+            feedbackEl.textContent = selectedValue === 'true' ? questionData.feedback_true : questionData.feedback_false;
+            feedbackEl.className = `feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+        }
+    });
+}
+
 async function gatherAllAssignmentsData() {
     let studentName = localStorage.getItem('studentName');
     if (!studentName) {
@@ -314,7 +408,7 @@ async function gatherAllAssignmentsData() {
 
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key.startsWith('textbox-assignment_') || key.startsWith('quiz-assignment_')) {
+        if (key.startsWith('textbox-assignment_') || key.startsWith('quiz-assignment_') || key.startsWith('tf-assignment_')) {
             studentData.assignments[key] = localStorage.getItem(key);
         }
     }
@@ -345,7 +439,7 @@ function submitAssignment(data) {
         alert('Keine bearbeiteten Aufgaben oder Anhänge zum Abgeben gefunden.');
         return;
     }
-    const filename = `submission-${data.studentName}-${new Date().toISOString().split('T')[0]}.json`;
+    const filename = `submission-${data.studentName.replace(/\s+/g, '_')}-${new Date().toISOString().split('T')[0]}.json`;
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
