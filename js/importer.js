@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         reader.readAsText(file);
     });
 
+
     importBtn.addEventListener('click', () => {
         if (!fileContent) {
             showStatus('Keine Datei zum Importieren ausgewählt.', 'error');
@@ -56,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
             showStatus(`Fehler beim Import: ${error.message}`, 'error');
         }
     });
+
 
     function showStatus(message, type) {
         statusMessage.textContent = message;
