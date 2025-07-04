@@ -1,5 +1,3 @@
-Of course. Here is the updated content for the `README.md` file. It has been expanded to include the more advanced quiz features you've built.
-
 # Modular Assignments Project
 
 [cite\_start]This project is a single-page application designed to dynamically render and manage educational assignments. [cite: 17, 63] [cite\_start]It uses JSON files to define assignment content, which can include rich text tasks (using Quill.js) and complex, multi-type quizzes[cite: 18, 63].
