@@ -45,22 +45,22 @@ document.addEventListener('DOMContentLoaded', () => {
  */
 function renderSubAssignment(subAssignmentData) {
     [cite_start]// Gemeinsame Elemente wie Titel und Anweisungen füllen [cite: 109, 110, 111]
-    [cite_start]document.getElementById('sub-title').textContent = subAssignmentData.title; [cite: 110]
-    [cite_start]document.getElementById('instructions').innerHTML = subAssignmentData.instructions; [cite: 111]
+    document.getElementById('sub-title').textContent = subAssignmentData.title;
+    document.getElementById('instructions').innerHTML = subAssignmentData.instructions;
 
     const contentRenderer = document.getElementById('content-renderer');
     contentRenderer.innerHTML = ''; // Vorherigen Inhalt sicherheitshalber löschen
 
-    [cite_start]// Weiterleitung an den spezifischen Renderer basierend auf dem Typ [cite: 112, 113]
+    // Weiterleitung an den spezifischen Renderer basierend auf dem Typ
     switch (subAssignmentData.type) {
-        [cite_start]case 'quill': // [cite: 114]
-            renderQuill(subAssignmentData); [cite_start]// [cite: 115]
-            break; [cite_start]// [cite: 116]
-        [cite_start]case 'multipleChoice': // [cite: 117]
-            renderMultipleChoice(subAssignmentData); [cite_start]// [cite: 118]
-            break; [cite_start]// [cite: 119]
-        [cite_start]default: // [cite: 121]
-            contentRenderer.innerHTML = '<p>Error: Unknown assignment type.</p>'; [cite_start]// [cite: 122]
+        case 'quill':
+            renderQuill(subAssignmentData);
+            break;
+        case 'multipleChoice':
+            renderMultipleChoice(subAssignmentData);
+            break;
+        default:
+            contentRenderer.innerHTML = '<p>Error: Unknown assignment type.</p>';
     }
 }
 
