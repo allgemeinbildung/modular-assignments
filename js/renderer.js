@@ -29,7 +29,6 @@ async function renderQuill(data, assignmentId, subId) {
     editorDiv.id = 'quill-editor';
     contentRenderer.appendChild(editorDiv);
 
-    // Add image button to toolbar
     const quill = new Quill('#quill-editor', {
         theme: 'snow',
         modules: {
@@ -111,9 +110,10 @@ async function renderQuill(data, assignmentId, subId) {
     await refreshAttachments();
 }
 
+
 /**
- * NEW: Renders a stateful, multi-type quiz engine with a results summary.
- */
+ * Renders a stateful, multi-type quiz engine.
+ */
 function renderQuiz(data, assignmentId, subId) {
     const { questions } = data;
     const contentRenderer = document.getElementById('content-renderer');
@@ -137,6 +137,7 @@ function renderQuiz(data, assignmentId, subId) {
             const userAnswer = userAnswers[q.id];
             let isCorrect = false;
             let correctAnswerText = '';
+            let studentAnswerForDisplay = userAnswer;
 
             switch (q.type) {
                 case 'multipleChoice':
@@ -154,6 +155,7 @@ function renderQuiz(data, assignmentId, subId) {
                     try {
                         const userAnswerArray = JSON.parse(userAnswer || '[]');
                         userAnswerText = Array.isArray(userAnswerArray) ? userAnswerArray.join(', ') : '';
+                        studentAnswerForDisplay = userAnswerText;
                     } catch {
                         userAnswerText = userAnswer || '';
                     }
@@ -168,7 +170,7 @@ function renderQuiz(data, assignmentId, subId) {
             resultsDetailsHTML += `
                 <div class="result-question">
                     <p><strong>${q.question}</strong></p>
-                    <p class="user-answer ${isCorrect ? 'correct' : 'incorrect'}"><strong>Your Answer:</strong> ${userAnswer || 'Not answered'}</p>
+                    <p class="user-answer ${isCorrect ? 'correct' : 'incorrect'}"><strong>Your Answer:</strong> ${studentAnswerForDisplay || 'Not answered'}</p>
                     ${!isCorrect ? `<p class="correct-answer-display"><strong>Correct Answer:</strong> ${correctAnswerText}</p>` : ''}
                 </div>
             `;
@@ -213,14 +215,43 @@ function renderQuiz(data, assignmentId, subId) {
         const optionsContainer = questionContainer.querySelector('.options-container');
 
         switch (questionData.type) {
+            // ✅ FIXED: Added missing logic for multipleChoice
             case 'multipleChoice':
-                // ... (logic remains the same)
-                break;
-            case 'trueFalse':
-                // ... (logic remains the same)
+                questionData.options.forEach(option => {
+                    const optionId = `q_${currentIndex}_${option.text.replace(/\s/g, '')}`;
+                    optionsContainer.innerHTML += `
+                        <div>
+                            <input type="radio" name="mc_option" id="${optionId}" value="${option.text}" ${userAnswers[questionData.id] === option.text ? 'checked' : ''}>
+                            <label for="${optionId}">${option.text}</label>
+                        </div>`;
+                });
+                optionsContainer.addEventListener('change', e => {
+                    if (e.target.name === 'mc_option') {
+                        userAnswers[questionData.id] = e.target.value;
+                        saveAnswers();
+                    }
+                });
                 break;
             
-            // ✅ REPLACED: The entire dragTheWords case is new
+            // ✅ FIXED: Added missing logic for trueFalse
+            case 'trueFalse':
+                 optionsContainer.innerHTML += `
+                    <div>
+                        <input type="radio" name="tf_option" id="q_${currentIndex}_true" value="True" ${userAnswers[questionData.id] === 'True' ? 'checked' : ''}>
+                        <label for="q_${currentIndex}_true">Richtig</label>
+                    </div>
+                    <div>
+                        <input type="radio" name="tf_option" id="q_${currentIndex}_false" value="False" ${userAnswers[questionData.id] === 'False' ? 'checked' : ''}>
+                        <label for="q_${currentIndex}_false">Falsch</label>
+                    </div>`;
+                optionsContainer.addEventListener('change', e => {
+                    if (e.target.name === 'tf_option') {
+                        userAnswers[questionData.id] = e.target.value;
+                        saveAnswers();
+                    }
+                });
+                break;
+            
             case 'dragTheWords':
                 {
                     const { content, words, id: questionId } = questionData;
