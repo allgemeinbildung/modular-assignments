@@ -113,7 +113,8 @@ export async function submitAssignment() {
         const result = await response.json();
 
         if (response.ok && result.status === 'success') {
-            alert(`Deine Arbeiten wurden erfolgreich übermittelt.\n\nDu kannst sie in diesem Ordner einsehen:\n${result.folderUrl}`);
+            // ✅ MODIFIED LINE: Use result.docUrl instead of result.folderUrl
+            alert(`Deine Arbeiten wurden erfolgreich übermittelt.\n\nDu kannst sie hier einsehen:\n${result.docUrl}`);
         } else {
             throw new Error(result.message || 'Ein unbekannter Server-Fehler ist aufgetreten.');
         }
