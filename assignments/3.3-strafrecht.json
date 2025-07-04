@@ -1,0 +1,49 @@
+{
+  "assignmentTitle": "3.3 Strafrechtliche Grundlagen",
+  "subAssignments": {
+    "Merkmale-einer-Straftat": {
+      "type": "quill",
+      "title": "Merkmale einer Straftat",
+      "instructions": "<p>Beantworte die folgenden Fragen mithilfe deines Lehrmittels auf Seite 98.</p>",
+      "questions": [
+        {
+          "id": "sr_q1",
+          "text": "Was sind die drei grundlegenden Merkmale, die erfüllt sein müssen, damit eine Handlung als Straftat gilt? Beschreibe jedes Merkmal kurz."
+        },
+        {
+          "id": "sr_q2",
+          "text": "Erkläre den Unterschied zwischen einem Verbrechen und einem Vergehen im schweizerischen Recht."
+        }
+      ],
+      "solution": {
+        "type": "html",
+        "content": "<h4>Lösung zu den Merkmalen einer Straftat</h4><p>Die drei Merkmale sind: 1. **Tatbestandsmässigkeit** (die Handlung entspricht der Beschreibung in einem Gesetz), 2. **Rechtswidrigkeit** (die Handlung ist nicht durch Notwehr oder einen anderen Grund gerechtfertigt), und 3. **Schuld** (der Täter handelt vorwerfbar).</p><p>Ein Verbrechen ist eine Tat, die mit einer Freiheitsstrafe von mehr als drei Jahren bedroht ist, während ein Vergehen mit einer geringeren Freiheitsstrafe oder Geldstrafe bedroht ist.</p>"
+      }
+    },
+    "Strafrecht-Quiz": {
+      "type": "multipleChoice",
+      "title": "Strafrecht Quiz",
+      "instructions": "<p>Teste dein Wissen über die Grundlagen des Strafrechts.</p>",
+      "questions": [
+        {
+          "id": "sr_mq1",
+          "question": "<p>Welches der folgenden Delikte ist typischerweise ein Antragsdelikt?</p>",
+          "options": [
+            { "text": "Mord", "is_correct": false, "feedback": "Falsch. Mord ist ein Offizialdelikt und wird von Amtes wegen verfolgt." },
+            { "text": "Diebstahl", "is_correct": true, "feedback": "Richtig. Ein einfacher Diebstahl wird in der Regel nur auf Antrag des Geschädigten verfolgt." },
+            { "text": "Raub", "is_correct": false, "feedback": "Falsch. Raub ist ein schwerwiegendes Offizialdelikt." }
+          ]
+        },
+        {
+          "id": "sr_mq2",
+          "question": "<p>Was bedeutet 'in dubio pro reo'?</p>",
+          "options": [
+            { "text": "Im Zweifel für den Angeklagten.", "is_correct": true, "feedback": "Richtig. Dies ist die Unschuldsvermutung." },
+            { "text": "Das Gesetz ist hart, aber es ist das Gesetz.", "is_correct": false, "feedback": "Falsch, das ist 'dura lex, sed lex'." },
+            { "text": "Ohne Kläger kein Richter.", "is_correct": false, "feedback": "Falsch. Das beschreibt das Antragsprinzip, ist aber nicht die Bedeutung des lateinischen Satzes." }
+          ]
+        }
+      ]
+    }
+  }
+}
