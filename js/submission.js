@@ -32,6 +32,8 @@ function parseKey(key) {
  * @returns {Promise<object|null>} The complete submission data object or null on failure.
  */
 export async function gatherAllAssignmentsData() {
+    // ... function content is correct ...
+    // [The rest of the function is identical to your provided file]
     let studentName = localStorage.getItem('studentName');
     if (!studentName) {
         studentName = prompt("Please enter your name for the submission:", "");
@@ -166,13 +168,11 @@ export async function gatherAllAssignmentsData() {
 export function submitAssignment(data) {
     if (!data) return;
 
-    // This check remains important
     if (!SCRIPT_URL) {
         alert("Submission error: The Google Apps Script URL is not configured. Please set it in 'js/config.js'.");
         console.error("SCRIPT_URL is not set in js/config.js");
         return;
     }
-
     const submitButton = document.getElementById('submit-all');
     submitButton.textContent = 'Submitting...';
     submitButton.disabled = true;
@@ -188,7 +188,6 @@ export function submitAssignment(data) {
         redirect: 'follow'
     })
     .then(response => {
-        // Add a check for a successful response before parsing JSON
         if (!response.ok) {
             throw new Error(`Network response was not ok, status: ${response.status}`);
         }
@@ -211,23 +210,3 @@ export function submitAssignment(data) {
     });
 }
 
-// Ensure the parseKey function is also present in your file.
-// I've omitted it here for brevity, but it should be included.
-function parseKey(key) {
-    const patterns = {
-        quill: /^textbox-assignment_([^_]+)_textbox-sub_(.+)$/,
-        quiz: /^(?:quiz|tf|drag)-assignment_([^_]+)_sub_(.+?)_question_(.+)$/
-    };
-    // ... rest of parseKey function
-    let match = key.match(patterns.quill);
-    if (match) {
-        const [, assignmentId, subId] = match;
-        return { type: 'quill', assignmentId, subId, questionId: null };
-    }
-    match = key.match(patterns.quiz);
-    if (match) {
-        const [, assignmentId, subId, questionId] = match;
-        return { type: 'quiz', assignmentId, subId, questionId };
-    }
-    return null;
-}
