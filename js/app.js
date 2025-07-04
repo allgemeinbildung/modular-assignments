@@ -524,7 +524,7 @@ function renderDragTheWords(data, assignmentId, subId) {
 
     contentRenderer.addEventListener('dragstart', (e) => {
         if (e.target.classList.contains('draggable-word')) {
-            draggedItem = e..target;
+            draggedItem = e.target;
             setTimeout(() => e.target.style.display = 'none', 0);
         }
     });
