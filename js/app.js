@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 2. JSON-Datei abrufen
-    const jsonPath = `../assignments/${assignmentId}.json`;
+    const jsonPath = `assignments/${assignmentId}.json`;
 
     fetch(jsonPath)
         .then(response => {
