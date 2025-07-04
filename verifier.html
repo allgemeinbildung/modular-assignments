@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Abgabe Überprüfen</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: sans-serif; line-height: 1.6; margin: 2em; }
+        #results { display: none; margin-top: 1em; }
+        pre { background-color: #f4f4f4; padding: 1em; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
+        h2 { border-bottom: 2px solid #eee; padding-bottom: 0.5em; }
+    </style>
+</head>
+<body>
+    <h1>Abgabe Überprüfen</h1>
+    <p>Bitte wähle die <code>submission-....json</code> Datei aus, die der Schüler abgegeben hat.</p>
+
+    <input type="file" id="json-file-input" accept=".json">
+
+    <div id="results">
+        <h2>Informationen zur Abgabe</h2>
+        <div id="submission-info"></div>
+
+        <h2>Abgegebene Antworten (Rohdaten)</h2>
+        <pre><code id="json-output"></code></pre>
+    </div>
+
+    <script>
+        document.getElementById('json-file-input').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (!file) {
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    const resultsDiv = document.getElementById('results');
+                    const infoDiv = document.getElementById('submission-info');
+                    const outputCode = document.getElementById('json-output');
+
+                    // Display general info
+                    infoDiv.innerHTML = `
+                        <p><strong>Schüler:</strong> ${data.studentName || 'Unbekannt'}</p>
+                        <p><strong>Abgabedatum:</strong> ${new Date(data.submissionDate).toLocaleString('de-CH')}</p>
+                    `;
+
+                    // Display raw JSON
+                    outputCode.textContent = JSON.stringify(data.assignments, null, 2);
+
+                    resultsDiv.style.display = 'block';
+                } catch (error) {
+                    alert('Fehler: Die ausgewählte Datei ist keine gültige JSON-Datei.\n' + error);
+                }
+            };
+            reader.readAsText(file);
+        });
+    </script>
+</body>
+</html>
