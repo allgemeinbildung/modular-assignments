@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const assignments = new Map();
 
     // Regex to parse assignmentId and subId from localStorage keys
-    const keyRegex = /^(?:textbox|quiz)-assignment_([^_]+)_(?:textbox-sub|sub)_(.+)$/;
+    const keyRegex = /^(?:textbox|quiz)-assignment_([^_]+)_(?:textbox-sub|sub)_(.+?)(?:_question_|$)/;
 
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
