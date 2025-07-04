@@ -1,5 +1,3 @@
-import { saveAttachment, getAttachmentsForSubAssignment, deleteAttachment } from './db.js';
-
 const QUILL_ANSWER_PREFIX = 'modular-answer_';
 const QUESTIONS_PREFIX = 'modular-questions_';
 const TITLE_PREFIX = 'title_';
@@ -53,43 +51,12 @@ async function renderQuill(data, assignmentId, subId) {
             localStorage.removeItem(storageKey);
         }
     }, 500));
-    
-    fileInput.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            await saveAttachment({
-                assignmentId,
-                subId,
-                fileName: file.name,
-                fileType: file.type,
-                data: e.target.result
-            });
-            await refreshAttachments();
-        };
-        reader.readAsDataURL(file);
-        fileInput.value = '';
-    });
-
-    attachmentsListDiv.addEventListener('click', async (event) => {
-        if (event.target.tagName === 'BUTTON') {
-            const attachmentId = parseInt(event.target.dataset.id, 10);
-            if (confirm('Anhang wirklich löschen?')) {
-                await deleteAttachment(attachmentId);
-                await refreshAttachments();
-            }
-        }
-    });
-
-    await refreshAttachments();
 }
 
 
 /**
- * Renders a stateful, multi-type quiz engine.
- */
+ * Renders a stateful, multi-type quiz engine.
+ */
 function renderQuiz(data, assignmentId, subId) {
     const { questions } = data;
     const contentRenderer = document.getElementById('content-renderer');
@@ -378,8 +345,8 @@ function renderQuiz(data, assignmentId, subId) {
 
 
 /**
- * Main function to render the sub-assignment based on its type.
- */
+ * Main function to render the sub-assignment based on its type.
+ */
 export async function renderSubAssignment(subAssignmentData, assignmentId, subId) {
     document.getElementById('sub-title').textContent = subAssignmentData.title;
     document.getElementById('instructions').innerHTML = subAssignmentData.instructions;
