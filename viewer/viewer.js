@@ -1,4 +1,8 @@
+import { initDB, getAllFiles } from '../js/db.js';
+
 document.addEventListener('DOMContentLoaded', () => {
+    // ... rest of the file remains the same
+    // document.addEventListener('DOMContentLoaded', () => {
     // --- DOM ELEMENT SELECTORS ---
     const assignmentListContainer = document.getElementById('assignment-list');
     const exportBackupBtn = document.getElementById('exportBackupBtn');
