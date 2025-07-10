@@ -44,21 +44,22 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Fetch and render the assignment content
-    const jsonPath = `assignments/${assignmentId}.json`;
-    fetch(jsonPath)
-        .then(response => {
-            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-            return response.json();
-        })
-        .then(data => {
-            document.getElementById('main-title').textContent = data.assignmentTitle;
-            const subAssignmentData = data.subAssignments[subId];
-            if (!subAssignmentData) throw new Error(`Teilaufgabe "${subId}" nicht gefunden.`);
-            
-            renderSubAssignment(subAssignmentData, assignmentId, subId);
-        })
-        .catch(error => {
+    // Fetch and render the assignment content
+    const jsonPath = `assignments/${assignmentId}.json`;
+    fetch(jsonPath)
+        .then(response => {
+            if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+            return response.json();
+        })
+        .then(data => {
+            document.getElementById('main-title').textContent = data.assignmentTitle;
+            const subAssignmentData = data.subAssignments[subId];
+            if (!subAssignmentData) throw new Error(`Teilaufgabe "${subId}" nicht gefunden.`);
+            
+            // CHANGED: Pass the global keys down to the renderer
+            renderSubAssignment(subAssignmentData, assignmentId, subId, data.global_solution_keys);
+        })
+        .catch(error => {
             console.error('Fehler beim Laden der Aufgabe:', error);
             document.getElementById('main-title').textContent = 'Fehler';
             document.getElementById('content-renderer').innerHTML = `<p>${error.message}</p>`;
