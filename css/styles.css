@@ -1,269 +1,275 @@
 /* ==========================================================================
-   Base & Layout Styles
-   ========================================================================== */
+   Base & Layout Styles
+   ========================================================================== */
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    line-height: 1.6;
-    margin: 0;
-    background-color: #f8f9fa;
-    color: #212529;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.6;
+    margin: 0;
+    background-color: #f8f9fa;
+    color: #212529;
 }
 
 #assignment-container {
-    max-width: 900px;
-    margin: 2em auto;
-    padding: 2em;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.07);
+    max-width: 900px;
+    margin: 2em auto;
+    padding: 2em;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.07);
 }
 
 #assignment-header h2 {
-    margin-top: 0;
+    margin-top: 0;
 }
 
 /* ==========================================================================
-   Quiz Component Styles
-   ========================================================================== */
+   Quiz Component Styles
+   ========================================================================== */
 
 .quiz-frame {
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 24px;
-    margin-top: 1.5em;
-    background-color: #ffffff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 24px;
+    margin-top: 1.5em;
+    background-color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
 .quiz-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e9ecef;
 }
 
 .quiz-progress {
-    font-size: 0.9em;
-    font-weight: bold;
-    color: #6c757d;
-    background-color: #e9ecef;
-    padding: 5px 10px;
-    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: bold;
+    color: #6c757d;
+    background-color: #e9ecef;
+    padding: 5px 10px;
+    border-radius: 20px;
 }
 
 .quiz-question-display {
-    min-height: 120px;
-    margin-bottom: 20px;
-    font-size: 1.1em;
+    min-height: 120px;
+    margin-bottom: 20px;
+    font-size: 1.1em;
+}
+
+/* ✅ ADDED: Compact styling for quiz options */
+.quiz-question-display .options-container div {
+    padding: 0.25em 0; /* Adjusts the vertical spacing between each radio button option */
+    line-height: 1.4;   /* Reduces the line height specifically for the options */
 }
 
 /* ==========================================================================
-   Quiz Navigation
-   ========================================================================== */
+   Quiz Navigation
+   ========================================================================== */
 
 .quiz-navigation {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 20px;
-    padding-top: 20px;
-    border-top: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
 }
 
 .quiz-nav-btn {
-    font-size: 1em;
-    padding: 10px 20px;
-    border-radius: 5px;
-    border: 1px solid #007bff;
-    cursor: pointer;
-    background-color: #007bff;
-    color: white;
-    transition: background-color 0.2s, color 0.2s;
+    font-size: 1em;
+    padding: 10px 20px;
+    border-radius: 5px;
+    border: 1px solid #007bff;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    transition: background-color 0.2s, color 0.2s;
 }
 
 .quiz-nav-btn:hover {
-    background-color: #0056b3;
-    border-color: #0056b3;
+    background-color: #0056b3;
+    border-color: #0056b3;
 }
 
 .quiz-nav-btn.secondary {
-    background-color: transparent;
-    color: #007bff;
+    background-color: transparent;
+    color: #007bff;
 }
 
 .quiz-nav-btn.secondary:hover {
-    background-color: #e7f3ff;
+    background-color: #e7f3ff;
 }
 
 .quiz-nav-btn:disabled {
-    background-color: #ced4da;
-    border-color: #ced4da;
-    cursor: not-allowed;
+    background-color: #ced4da;
+    border-color: #ced4da;
+    cursor: not-allowed;
 }
 
 /* ==========================================================================
-   Drag and Drop Question Type
-   ========================================================================== */
+   Drag and Drop Question Type
+   ========================================================================== */
 
 .sentence-container {
-    padding: 15px;
-    line-height: 2.8;
-    font-size: 1.2em;
+    padding: 15px;
+    line-height: 2.8;
+    font-size: 1.2em;
 }
 
 .word-bank {
-    margin-top: 20px;
-    padding: 10px;
-    border: 2px dashed #ccc;
-    min-height: 50px;
-    border-radius: 5px;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    margin-top: 20px;
+    padding: 10px;
+    border: 2px dashed #ccc;
+    min-height: 50px;
+    border-radius: 5px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 .draggable-word {
-    display: inline-block;
-    cursor: grab;
-    background-color: #007bff;
-    color: white;
-    padding: 5px 12px;
-    margin: 5px;
-    border-radius: 5px;
-    user-select: none;
-    transition: all 0.2s ease-in-out;
+    display: inline-block;
+    cursor: grab;
+    background-color: #007bff;
+    color: white;
+    padding: 5px 12px;
+    margin: 5px;
+    border-radius: 5px;
+    user-select: none;
+    transition: all 0.2s ease-in-out;
 }
 
 .draggable-word:hover {
-    background-color: #0056b3;
-    transform: translateY(-2px);
+    background-color: #0056b3;
+    transform: translateY(-2px);
 }
 
 .draggable-word.dragging {
-    opacity: 0.5;
-    cursor: grabbing;
+    opacity: 0.5;
+    cursor: grabbing;
 }
 
 .draggable-word.selected-word {
-    background-color: #28a745;
-    box-shadow: 0 0 10px rgba(40, 167, 69, 0.7);
-    transform: scale(1.1);
-    cursor: pointer;
+    background-color: #28a745;
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.7);
+    transform: scale(1.1);
+    cursor: pointer;
 }
 
 .drop-zone {
-    display: inline-block;
-    min-width: 150px;
-    min-height: 42px;
-    border: 2px dashed #999;
-    border-radius: 5px;
-    vertical-align: middle;
-    margin: 0 5px;
-    padding: 4px;
-    transition: background-color 0.2s, border-color 0.2s;
-    text-align: center;
+    display: inline-block;
+    min-width: 150px;
+    min-height: 42px;
+    border: 2px dashed #999;
+    border-radius: 5px;
+    vertical-align: middle;
+    margin: 0 5px;
+    padding: 4px;
+    transition: background-color 0.2s, border-color 0.2s;
+    text-align: center;
 }
 
 .drop-zone .draggable-word {
-    background-color: #e9ecef;
-    color: #212529;
-    border: 1px solid #ced4da;
-    cursor: default;
+    background-color: #e9ecef;
+    color: #212529;
+    border: 1px solid #ced4da;
+    cursor: default;
 }
 
 .drop-zone.drag-over {
-    background-color: #e7f3ff;
-    border-color: #007bff;
+    background-color: #e7f3ff;
+    border-color: #007bff;
 }
 
 
 /* ==========================================================================
-   Quiz Results & Feedback
-   ========================================================================== */
+   Quiz Results & Feedback
+   ========================================================================== */
 
 .quiz-results-container {
-    padding: 20px;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    background-color: #f8f9fa;
-    margin-top: 1.5em;
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    margin-top: 1.5em;
 }
 
 .quiz-results-container h2 {
-    color: #003f5c;
-    text-align: center;
-    border-bottom: none;
+    color: #003f5c;
+    text-align: center;
+    border-bottom: none;
 }
 
 .result-summary {
-    text-align: center;
-    font-size: 1.5em;
-    font-weight: bold;
-    margin: 20px 0;
+    text-align: center;
+    font-size: 1.5em;
+    font-weight: bold;
+    margin: 20px 0;
 }
 
 .result-question {
-    border-bottom: 1px solid #e9ecef;
-    padding: 15px 0;
+    border-bottom: 1px solid #e9ecef;
+    padding: 15px 0;
 }
 .result-question:last-child {
-    border-bottom: none;
+    border-bottom: none;
 }
 
 .result-question p {
-    margin: 5px 0;
+    margin: 5px 0;
 }
 
 .user-answer.correct {
-    color: #155724;
-    font-weight: bold;
+    color: #155724;
+    font-weight: bold;
 }
 
 .user-answer.incorrect {
-    color: #721c24;
-    font-weight: bold;
+    color: #721c24;
+    font-weight: bold;
 }
 
 .correct-answer-display {
-    color: #198754;
-    font-style: italic;
+    color: #198754;
+    font-style: italic;
 }
 
 .feedback {
-    margin-top: 10px;
-    padding: 8px;
-    border-radius: 4px;
-    font-style: italic;
+    margin-top: 10px;
+    padding: 8px;
+    border-radius: 4px;
+    font-style: italic;
 }
 
 .feedback.correct {
-    background-color: #e9f7ef;
-    color: #155724;
+    background-color: #e9f7ef;
+    color: #155724;
 }
 
 .feedback.incorrect {
-    background-color: #f8d7da;
-    color: #721c24;
+    background-color: #f8d7da;
+    color: #721c24;
 }
 
 /* ==========================================================================
-   Solution Display
-   ========================================================================== */
+   Solution Display
+   ========================================================================== */
 
 #solution-display-container {
-    margin-top: 30px;
-    padding: 20px;
-    border: 2px solid #28a745;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    display: none;
+    margin-top: 30px;
+    padding: 20px;
+    border: 2px solid #28a745;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    display: none;
 }
 
 #solution-display-container h3 {
-    margin-top: 0;
-    color: #003f5c;
-    border-bottom: 1px solid #dee2e6;
-    padding-bottom: 10px;
+    margin-top: 0;
+    color: #003f5c;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 10px;
 }
