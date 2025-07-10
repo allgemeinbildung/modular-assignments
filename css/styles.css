@@ -270,3 +270,49 @@ body {
     border-bottom: 1px solid #dee2e6;
     color: #003f5c;
 }
+
+/* ==========================================================================
+   Compact Quiz Adjustments
+   ========================================================================== */
+.quiz-frame {
+    /* less “breathing room” around the whole quiz */
+    padding: 16px;
+    margin-top: 1em;
+}
+
+.quiz-header {
+    /* tighter header → question spacing */
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+}
+
+.quiz-progress {
+    /* smaller pill badge */
+    padding: 4px 8px;
+    font-size: 0.85em;
+}
+
+.quiz-question-display {
+    /* remove the forced tall box and shrink gap to options */
+    min-height: auto;
+    margin-bottom: 10px;
+    font-size: 1em;
+}
+
+.quiz-question-display .options-container > div {
+    /* less vertical space between each radio/checkbox */
+    padding: 0.2em 0;
+    line-height: 1.2;
+}
+
+.quiz-navigation {
+    /* shrink gap to buttons */
+    margin-top: 10px;
+    padding-top: 8px;
+}
+
+.quiz-nav-btn {
+    /* smaller buttons, too */
+    padding: 8px 16px;
+    font-size: 0.9em;
+}
