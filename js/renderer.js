@@ -333,49 +333,56 @@ function renderQuiz(data, assignmentId, subId) {
                         }
                     });
 
-                    optionsContainer.addEventListener('dragstart', e => {
+                    // Drag and Drop Event Handlers
+                    optionsContainer.addEventListener('dragstart', (e) => {
                         if (e.target.classList.contains('draggable-word')) {
                             e.dataTransfer.setData('text/plain', e.target.dataset.wordId);
                             setTimeout(() => e.target.classList.add('dragging'), 0);
                         }
                     });
 
-                    optionsContainer.addEventListener('dragend', e => {
+                    optionsContainer.addEventListener('dragend', (e) => {
                         if (e.target.classList.contains('draggable-word')) {
                             e.target.classList.remove('dragging');
                         }
                     });
                     
-                    ['dragover', 'dragenter'].forEach(eventName => {
-                        optionsContainer.addEventListener(eventName, e => {
-                             e.preventDefault();
-                             const target = e.target.classList.contains('drop-zone') ? e.target : e.target.closest('.drop-zone');
-                             if(target) target.classList.add('drag-over');
-                        });
+                    optionsContainer.addEventListener('dragover', (e) => {
+                        const dropZone = e.target.closest('.drop-zone');
+                        const wordBank = e.target.closest('.word-bank');
+                        // Allow dropping on drop zones and the word bank
+                        if (dropZone || wordBank) {
+                            e.preventDefault();
+                            if (dropZone) {
+                                dropZone.classList.add('drag-over');
+                            }
+                        }
                     });
 
-                    ['dragleave', 'drop'].forEach(eventName => {
-                        optionsContainer.addEventListener(eventName, e => {
-                            const target = e.target.classList.contains('drop-zone') ? e.target : e.target.closest('.drop-zone');
-                             if(target) target.classList.remove('drag-over');
-                        });
+                    optionsContainer.addEventListener('dragleave', (e) => {
+                        const dropZone = e.target.closest('.drop-zone');
+                        if (dropZone) {
+                            dropZone.classList.remove('drag-over');
+                        }
                     });
 
-                    optionsContainer.addEventListener('drop', e => {
+                    optionsContainer.addEventListener('drop', (e) => {
                         e.preventDefault();
                         const wordId = e.dataTransfer.getData('text/plain');
                         const draggedWordEl = optionsContainer.querySelector(`[data-word-id="${wordId}"]`);
                         if (!draggedWordEl) return;
                         
-                        const dropTarget = e.target.classList.contains('drop-zone') ? e.target : e.target.closest('.drop-zone');
-                        const bankTarget = e.target.classList.contains('word-bank') ? e.target : e.target.closest('.word-bank');
+                        const dropTarget = e.target.closest('.drop-zone');
+                        const bankTarget = e.target.closest('.word-bank');
 
                         if (dropTarget) {
+                            dropTarget.classList.remove('drag-over');
                             placeWord(dropTarget, draggedWordEl);
-                        } else if(bankTarget) {
+                            updateAnswer();
+                        } else if (bankTarget) {
                             bankTarget.appendChild(draggedWordEl);
+                            updateAnswer();
                         }
-                        updateAnswer();
                     });
                 }
                 break;
