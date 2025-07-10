@@ -2,6 +2,7 @@ const QUILL_ANSWER_PREFIX = 'modular-answer_';
 const QUESTIONS_PREFIX = 'modular-questions_';
 const TITLE_PREFIX = 'title_';
 const TYPE_PREFIX = 'type_';
+const SOLUTION_KEY_STORAGE = 'modular-assignment-solution-key';
 
 /**
  * Utility function to delay execution of a function until after a certain time has passed without it being called.
@@ -19,7 +20,7 @@ function debounce(func, wait) {
 
 /**
  * Renders a "Quill" type assignment, which includes a rich text editor for free-form answers.
- * It also handles the logic for unlocking and displaying a model solution using a global key.
+ * It handles unlocking solutions and persists the key in localStorage for automatic unlocking on future visits.
  * @param {object} data The data for the sub-assignment.
  * @param {string} assignmentId The ID of the main assignment.
  * @param {string} subId The ID of the sub-assignment.
@@ -31,10 +32,17 @@ async function renderQuill(data, assignmentId, subId, globalSolutionKeys = []) {
     const solutionDisplayContainer = document.getElementById('solution-display-container');
     const storageKey = `${QUILL_ANSWER_PREFIX}${assignmentId}_sub_${subId}`;
 
-    // Reset solution containers for this render
+    // Reset containers for this render
     solutionImportContainer.innerHTML = '';
     solutionDisplayContainer.innerHTML = '';
     solutionDisplayContainer.style.display = 'none';
+
+    // Helper function to display the solution
+    const displaySolution = (solutionHTML) => {
+        solutionDisplayContainer.innerHTML = `<h3>Musterlösung</h3>${solutionHTML}`;
+        solutionDisplayContainer.style.display = 'block';
+        solutionImportContainer.style.display = 'none';
+    };
 
     // Render the list of questions
     const questionsList = document.createElement('ol');
@@ -77,14 +85,18 @@ async function renderQuill(data, assignmentId, subId, globalSolutionKeys = []) {
         }
     }, 500));
 
-    // --- Solution Unlock Logic ---
+    // --- Persistent Solution Unlock Logic ---
 
-    const displaySolution = (solutionHTML) => {
-        solutionDisplayContainer.innerHTML = `<h3>Musterlösung</h3>${solutionHTML}`;
-        solutionDisplayContainer.style.display = 'block';
-        solutionImportContainer.style.display = 'none'; // Hide the input field
-    };
+    // Check for a saved, valid key first for automatic unlocking.
+    const savedKey = localStorage.getItem(SOLUTION_KEY_STORAGE);
+    if (savedKey && globalSolutionKeys && globalSolutionKeys.includes(savedKey)) {
+        if (data.solution && data.solution.content) {
+            displaySolution(data.solution.content);
+            return; // Solution displayed, no need to show the unlock input.
+        }
+    }
     
+    // Function to set up the UI for unlocking the solution
     const setupSolutionUnlock = (keys, solutionContent) => {
         solutionImportContainer.innerHTML = `
             <input type="text" id="solution-key-input" placeholder="Lösungsschlüssel eingeben..." style="margin-right: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
@@ -97,7 +109,10 @@ async function renderQuill(data, assignmentId, subId, globalSolutionKeys = []) {
         const statusEl = document.getElementById('solution-status');
 
         unlockBtn.onclick = () => {
-            if (keys.includes(keyInput.value.trim())) {
+            const enteredKey = keyInput.value.trim();
+            if (keys.includes(enteredKey)) {
+                // Key is valid, save it for future visits
+                localStorage.setItem(SOLUTION_KEY_STORAGE, enteredKey);
                 displaySolution(solutionContent);
             } else {
                 statusEl.textContent = 'Falscher Schlüssel. Bitte erneut versuchen.';
@@ -113,7 +128,7 @@ async function renderQuill(data, assignmentId, subId, globalSolutionKeys = []) {
         };
     };
 
-    // Show the unlock UI only if the assignment has a solution and global keys are provided
+    // If not auto-unlocked, show the unlock UI if applicable.
     if (data.solution && data.solution.content && globalSolutionKeys && globalSolutionKeys.length > 0) {
         setupSolutionUnlock(globalSolutionKeys, data.solution.content);
     }
@@ -336,7 +351,6 @@ function renderQuiz(data, assignmentId, subId) {
                         }
                     });
 
-                    // Minimal drag-and-drop handlers for broader device support
                     optionsContainer.addEventListener('dragstart', (e) => {
                         if (e.target.classList.contains('draggable-word')) {
                             e.dataTransfer.setData('text/plain', e.target.dataset.wordId);
